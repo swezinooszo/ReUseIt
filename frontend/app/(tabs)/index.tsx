@@ -1,0 +1,272 @@
+import { Text, View,TextInput, FlatList, StyleSheet,Image,TouchableOpacity,ActivityIndicator,Dimensions,Modal} from "react-native";
+import { useState,useEffect } from "react";
+import { useRouter,useRootNavigationState } from "expo-router";
+import CustomButton from '../components/CustomButton';
+import { useAuth } from '@/context/AuthContext';
+import {SafeAreaView, SafeAreaProvider} from 'react-native-safe-area-context';
+import api from '../utils/api';
+import { Ionicons } from '@expo/vector-icons';
+import CustomTextInput from "../components/CustomTextInput";
+import CustomTextInputSearchIcon from "../components/CustomTextInputSearchIcon";
+import CustomTextInputSearchIconEditable from "../components/CustomTextInputSearchIconEditable";
+
+interface Listing {
+  _id: string;
+  image: string[];
+  title: string;
+  price: number;
+  condition: string;
+}
+
+const screenWidth = Dimensions.get('window').width;
+const itemWidth = (screenWidth - 30) / 2; // Adjust spacing
+
+export default function Index() {
+  const router = useRouter();
+
+  const [listings, setListings] = useState<Listing[]>([]);
+  const [page, setPage] = useState(1);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+  const [query,setQuery] = useState('what are you looking for?');
+
+  {/* Modal Search  */}
+  const [modalVisible, setModalVisible] = useState(false);
+  const [modalQuery, setModalQuery] = useState('');
+  const [suggestions, setSuggestions] = useState<string[]>([]);
+
+  const fetchListings = async () =>{
+     if (loadingMore || !hasMore) return;
+     console.log(`fetchListing page  ${page}`)
+    setLoadingMore(true);
+    try {
+      const response =  api.get(`/listings?page=${page}&limit=4`) //await axios.get(`https://your-backend.com/api/listings?page=${page}&limit=50`);
+      const newItems = (await response).data;
+      console.log(`fetchListing data ${newItems.length}`)
+      if (newItems.length === 0) {
+        setHasMore(false);
+      } else {
+        setListings(prev => [...prev, ...newItems]);
+        setPage(prev => prev + 1);
+      }
+    } catch (error) {
+      console.error('Failed to fetch listings:', error);
+    } finally {
+      setLoadingMore(false);
+    }
+  }
+
+  useEffect(()=>{
+    console.log(`useEffect fetchListing`)
+      fetchListings();
+  },[])
+
+    const renderItem = ({ item }:{item:Listing}) => (
+    <View style={styles.card}>
+      <TouchableOpacity onPress={() => {
+            router.push({pathname:'/(explore)/listingDetails',params:{listingId:item._id}})
+      }}>
+      <View>
+        <Image source={{ uri: item.image[0] }} style={styles.image} />
+        <View style={styles.descriptionRow}>
+          <Text style={styles.description} numberOfLines={2}>{item.title}</Text>
+          <TouchableOpacity>
+            <Ionicons name="chatbubble-ellipses-outline" size={16} color="black" />
+          </TouchableOpacity>
+        </View>
+        <Text style={styles.price}>${item.price}</Text>
+        <Text style={styles.condition}>{item.condition}</Text>
+      </View>
+      </TouchableOpacity>
+    </View>
+   );
+
+  const onSearchPress= () => {
+    console.log(' onSearchPress')
+    //router.push('/(explore)/searchPage')
+    setModalVisible(true);
+   }
+
+  {/* Modal Search  */}
+  // fetchSuggestions
+  useEffect(() => {
+    console.log(`Indexfetch suggestions ${modalQuery}`)
+    const fetchSuggestions = async () => {
+      if (modalQuery.trim() === '') {
+        setSuggestions([]);
+        return;
+      }
+
+      try {
+        const res = await api.get(`/listings/suggestions?query=${modalQuery}`);
+        console.log(`fetch suggestions data ${res.data}`)
+        setSuggestions(res.data); // Expect array of strings
+      } catch (err) {
+        console.log('Error fetching suggestions:', err);
+      }
+    };
+
+    fetchSuggestions();
+  }, [modalQuery]);
+
+  const callSearchResultPage = (value: string) => {
+    setModalVisible(false);
+    console.log('call searchResultPage')
+    router.push({ pathname: '/searchResult', params: { query: value } });
+  };
+  return (
+    <SafeAreaProvider>
+      <SafeAreaView style={styles.safeAreacontainer}>
+            {/* Modal Search  start */}
+            <Modal
+                  animationType="none"
+                  transparent={true}
+                  visible={modalVisible}
+                  onRequestClose={() => setModalVisible(false)}
+              >
+                 <SafeAreaProvider>
+                <SafeAreaView style={styles.safeAreacontainer}>
+                  <View style={styles.modalContainer}>
+                    <View style={{flex:0.5,height:40,alignItems: 'center',justifyContent:'center'}}>
+                    </View>
+                    <View style={{flex:4,height:40}}>
+                        <CustomTextInputSearchIconEditable value={modalQuery} onChangeText={setModalQuery} placeholder="what you are looking for?"></CustomTextInputSearchIconEditable>
+                    </View>
+                    <View style={{flex:1,height:40,alignItems: 'center',justifyContent:'center'}}>
+                        <TouchableOpacity onPress={() => setModalVisible(false)}><Text>Cancel</Text></TouchableOpacity>
+                    </View>
+                  </View>
+                  <View style={styles.modalListContainer}>
+                      <FlatList
+                        data={suggestions}
+                        keyExtractor={(item, index) => `${item}-${index}`}
+                        renderItem={({ item }) => (
+                          <TouchableOpacity
+                            onPress={() => callSearchResultPage(item)}
+                            style={styles.suggestionItem}
+                          >
+                            <Text>{item}</Text>
+                          </TouchableOpacity>
+                        )}
+                      />
+                  </View>
+                </SafeAreaView>
+                </SafeAreaProvider>
+            </Modal>
+            {/* Modal Search  end */}
+
+            
+              <View style={styles.container}>
+                <View style={{flex:1,height:40,alignItems: 'center',justifyContent:'center'}}>
+                    <Ionicons name="chatbubble-ellipses-outline" size={24} color="black" />
+                </View>
+                <View style={{flex:4,height:40}}>
+                    <CustomTextInputSearchIcon onPress = {onSearchPress} value={query} onChangeText={setQuery}></CustomTextInputSearchIcon>
+                </View>
+                <View style={{flex:1,height:40,alignItems: 'center',justifyContent:'center'}}>
+                    <Ionicons name="chatbubble-ellipses-outline" size={24} color="black" />
+                </View>
+              </View>
+              <View style={styles.listContainer}>
+                <Text style={styles.sectionTitle}>Top picks</Text>
+                  <FlatList
+                    data={listings}
+                    // keyExtractor={(item, index) => item._id || index.toString()}
+                    keyExtractor={(item, index) => `${item._id ?? 'id'}-${index}`}
+                    numColumns={2}
+                    columnWrapperStyle={styles.row}
+                    renderItem={renderItem}
+                    contentContainerStyle={styles.flatListContainer}
+                    onEndReached={fetchListings}
+                    onEndReachedThreshold={0.5}
+                    ListFooterComponent={loadingMore ? <ActivityIndicator size="small" color="#888" /> : null}
+                  />
+              </View>
+          
+        </SafeAreaView>
+    </SafeAreaProvider>
+
+  );
+}
+
+const styles = StyleSheet.create({
+   safeAreacontainer : {
+      flex:1,
+      flexDirection:'column',
+      backgroundColor: 'white'
+   },
+    container : {
+      flex:0.5,
+      // justifyContent: "center",
+      // alignItems: "center",
+      flexDirection:'row'
+    },
+    listContainer: {
+       flex:8,
+      //  backgroundColor:'yellow'
+    },
+    sectionTitle:{
+      fontSize:18,
+      fontWeight:'bold',
+      color:'green'
+    },
+    flatListContainer: {
+    paddingHorizontal: 10,
+    paddingTop: 10,
+    },
+    row: {
+      justifyContent: 'space-between',
+      marginBottom: 15,
+    },
+    card: {
+      width: itemWidth,
+      backgroundColor: '#fff',
+      borderRadius: 10,
+      overflow: 'hidden',
+      elevation: 2,
+      padding: 8,
+    },
+    image: {
+      width: '100%',
+      height: itemWidth,
+      borderRadius: 8,
+      backgroundColor:'yellow'
+    },
+    descriptionRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginTop: 8,
+    },
+    description: {
+      fontSize: 14,
+      flex: 1,
+      marginRight: 4,
+    },
+    price: {
+      fontWeight: 'bold',
+      fontSize: 16,
+      marginTop: 4,
+    },
+    condition: {
+      fontSize: 12,
+      color: '#777',
+    },
+    modalContainer : {
+      flex:1,
+      // justifyContent: "center",
+      // alignItems: "center",
+      flexDirection:'row'
+    },
+    modalListContainer: {
+       flex:8,
+        paddingHorizontal: 16,
+        backgroundColor: '#fff',
+    },
+    suggestionItem: {
+      paddingVertical: 12,
+      borderBottomWidth: 1,
+      borderBottomColor: '#eee',
+    },
+   
+})
