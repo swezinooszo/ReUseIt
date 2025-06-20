@@ -86,6 +86,7 @@ const loginUser = async (req, res) => {
         id: user._id,
         email: user.email,
         username: user.username,
+        createdAt: user.createdAt
       },
     });
   } catch (err) {

@@ -10,12 +10,23 @@ const getChats = asyncHandler(async (req,res) => {
     console.log(`getChats ${req.params.userId }`)
     const userId = req.params.userId;
 
+    // const chats = await Chat.find({
+    //   $or: [
+    //     { buyerId: userId },
+    //     { sellerId: userId }
+    //   ]
+    // })
     const chats = await Chat.find({
-      $or: [
-        { buyerId: userId },
-        { sellerId: userId }
-      ]
-    })
+    $and: [
+      {
+        $or: [
+          { buyerId: userId },
+          { sellerId: userId }
+        ]
+      },
+      { lastMessage: { $exists: true, $ne: null } } // only include if lastMessage exists and is not null
+    ]
+  })
     .populate('buyerId')
     .populate('sellerId')
     .populate('listingId')

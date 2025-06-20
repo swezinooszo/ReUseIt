@@ -28,6 +28,8 @@ app.use('/api/listings',require('./routes/listingRoutes'))
 app.use('/api/messages',require('./routes/messageRoutes'))
 app.use('/api/chats',require('./routes/chatRoutes'))
 app.use('/api/auth',require('./routes/authRoutes'))
+app.use('/api/categories',require('./routes/categoryRoutes'))
+app.use('/api/offers',require('./routes/offerRoutes'))
 app.use(errorHandler)
 
 
@@ -47,14 +49,14 @@ const io = new Server(server, {//io is your Socket.IO server instance.
 
 // Auth middleware
 io.use((socket, next) => {
-  console.log('auth middleware');
+  //console.log('auth middleware');
   const token = socket.handshake.auth.token;
-  console.log(`auth middleware token ${token}`);
+  //console.log(`auth middleware token ${token}`);
   if (!token) return next(new Error('No token'));
   try {
-      console.log(`auth middleware decode start`);
+      //console.log(`auth middleware decode start`);
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      console.log(`auth middleware id ${decoded.id}`);
+     // console.log(`auth middleware id ${decoded.id}`);
       socket.userId = decoded.id;
       next();
   } catch (err) {

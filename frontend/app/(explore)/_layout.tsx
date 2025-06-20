@@ -11,18 +11,18 @@ export default function ExploreLayout() {
     <Stack>
         {/* <Stack.Screen name='searchPage' options={{headerShown:false }}></Stack.Screen> */}
         <Stack.Screen name='searchResult' options={{headerShown:false}}></Stack.Screen>
-        <Stack.Screen name="listingDetails"  
-        options={({ navigation }) => ({
-            // headerTitle: 'Chat List',
-            headerLeft: () => (
-            <TouchableOpacity
-                onPress={() => navigation.goBack()}
-                style={{ marginLeft: 10 }} // Add some spacing for the icon
-            >
-                <Ionicons name="chevron-back" size={24} />
-            </TouchableOpacity>
-            ),
-        })}
+        <Stack.Screen name="listingDetails"  options={{headerShown:false}}
+        // options={({ navigation }) => ({
+        //     // headerTitle: 'Chat List',
+        //     headerLeft: () => (
+        //     <TouchableOpacity
+        //         onPress={() => navigation.goBack()}
+        //         style={{ marginLeft: 10 }} // Add some spacing for the icon
+        //     >
+        //       <Ionicons name="arrow-back-outline" size={24} color="black" />
+        //     </TouchableOpacity>
+        //     ),
+        // })}
         />
 
     </Stack>

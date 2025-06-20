@@ -6,11 +6,12 @@ import {router} from "expo-router";
 import api from '../utils/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {jwtDecode} from 'jwt-decode';
+import styles from "../styles/chatListStyles";
+import AntDesign from '@expo/vector-icons/AntDesign';
 
 interface User {
   _id: string;
-  firstname: string;
-  lastname: string;
+  username: string;
   email: string;
 }
 
@@ -43,6 +44,7 @@ const chatlist = () => {
     //     baseURL: 'http://localhost:8000/api',
     // });
 
+    // retrieve userID from token
     useEffect(() => {
       const loadToken = async () => {
         console.log("loadToken")
@@ -62,17 +64,20 @@ const chatlist = () => {
       loadToken();
   }, []);
 
-
+    // retrive chat list based on userId
     useEffect(() =>{
+      if(!userId) return
+      console.log(` chatlist userId ${userId}`)
         api.get(`/chats/${userId}`)//683baea3c5b53f9905bd28fa
         .then(res=> {
             console.log(`chatlist data ${res.data}`)
             setChats(res.data)
         })
-        .catch(error=>console.log(error))
+        .catch(error=> {console.log(`get chat error ${error}`)})
 
     },[userId])
 
+    // renderChatItem
     const renderChatItem = ({ item }:  { item: Chat }) => {
     const otherUser = item.buyerId._id === userId ? item.sellerId : item.buyerId;
     const listing = item.listingId;
@@ -80,7 +85,8 @@ const chatlist = () => {
       <TouchableOpacity
         onPress={() => 
           {
-            router.navigate({ pathname: '/(me)/chat',params:{listingId:listing._id,receiverId: otherUser._id,currentUserId: userId,token:token}});
+            // add one more param sellerId to determin whether to show make offer button or not
+            router.navigate({ pathname: '/(me)/chat',params:{listingId:listing._id,receiverId: otherUser._id,receiverName:otherUser.username,receiverEmail:otherUser.email,currentUserId: userId,token:token,price:item.listingId.price,sellerId:item.sellerId._id}});
           }
         }
         style={{
@@ -91,10 +97,10 @@ const chatlist = () => {
         }}
       >
         {/* <Image source={{ uri: otherUser.avatar }} style={{ width: 40, height: 40, borderRadius: 20 }} /> */}
-        <View style={{ marginLeft: 12, flex: 1 }}>
-          <Text >{otherUser.firstname}</Text>
-           <Text style={{ fontWeight: 'bold' }}>{item.listingId.title}</Text>
-          <Text numberOfLines={1} style={{ color: '#888' }}>{item.lastMessage}</Text>
+        <View style={styles.subViewContainer}>
+          <Text style={{fontSize:16}}>{otherUser.username}</Text>
+           <Text style={{fontSize:16, fontWeight: 'bold',marginTop:8 }}>{item.listingId.title}</Text>
+          <Text style={{ fontSize:14, color: '#888' ,marginTop:5}} numberOfLines={1} >{item.lastMessage}</Text>
           <Text style={{ color: '#aaa', fontSize: 12 }}>
             {new Date(item.updatedAt).toLocaleString()}
           </Text>
@@ -104,25 +110,35 @@ const chatlist = () => {
     );
   };
 
+    //close button
+    const onClose = () =>{
+      router.back();
+    }
     return(
         <SafeAreaProvider>
-            <SafeAreaView>
-                <Text >
-                    Chatlist
-                </Text>
+            <SafeAreaView style={styles.safeAreacontainer}>
+                <View style={styles.chatListHeaderContainer}>
+                  <View  style={styles.subViewContainer}>
+                    <AntDesign name="close" size={24} color="black" onPress={onClose}/>
+                  </View>
+                  <View  style={styles.chatListTitleContainer}>
+                    <Text style={styles.chatListTitle} >
+                        All Chats
+                    </Text>
+                  </View>
+                  <View  style={styles.subViewContainer}>
+                  </View>
+                </View>
+                <View style={styles.chatListContainer}>
                  <FlatList
                     data={chats}
                     keyExtractor={item => item._id}
                     renderItem={renderChatItem}
                     />
+                </View>
             </SafeAreaView>
         </SafeAreaProvider>
     );
 }
 
-const styles = StyleSheet.create({
-    input: {
-        
-    }
-})
 export default chatlist;

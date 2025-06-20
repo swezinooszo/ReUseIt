@@ -1,35 +1,58 @@
 //3.
 const asyncHandler = require('express-async-handler')
-
 const Listing = require('../models/listingModel')
 
-// @desc    Get Listings
-// @route   GET /api/listing/:id
-// @access Private
-// const getListings = asyncHandler(async (req,res) => {
-//     const listings = await Listing.find()
-//     res.status(200).json(listings);
-// })
-const getListingById = asyncHandler(async (req,res) => {
-    try {
-        const id = req.params.id
 
-        const listing = await Listing.findById(id)
-        if(!listing){
-            res.status(400)
-            throw new Error('Listing not found')
-        }
-        res.status(200).json(listing);
-    } catch (err) {
-        console.error('Error fetching listings:', err);
-        res.status(500).json({ error: 'Server error' });
+
+// @desc    Create Listings
+// @route   POST /api/listings
+// @access Private
+const createListing = asyncHandler( async (req,res) => {
+    console.log(req.body);
+    const {
+    title,
+    price,
+    description,
+    condition,
+    sellerId,
+    address,
+    location,
+    categoryId,
+    subCategoryIds,
+    image,
+    dynamicFields,
+    } = req.body;
+
+      // Optionally validate `location`
+    if (
+      !location ||
+      location.type !== 'Point' ||
+      !Array.isArray(location.coordinates) ||
+      location.coordinates.length !== 2
+    ) {
+      //return res.status(400).json({ error: 'Invalid location data' });
+        res.status(400); 
+       throw new Error('Invalid location data');
     }
+
+    const listing = await Listing.create({
+    title,
+    price,
+    description,
+    condition,
+    sellerId,
+    address,
+    location,
+    categoryId,
+    subCategoryIds,
+    image,
+    dynamicFields
+    });
+    res.status(200).json(listing);
 })
 
-
-
 // @desc    Get Listings
-// @route   GET /api/listing
+// @route   GET /api/listings
 // @access Private
 // const getListings = asyncHandler(async (req,res) => {
 //     const listings = await Listing.find()
@@ -41,11 +64,15 @@ const getListings = asyncHandler(async (req,res) => {
         const limit = parseInt(req.query.limit) || 5;
         const skip = (page - 1) * limit;
 
-        const listings = await Listing.find()
+        const listings = await Listing.find(
+            {
+            isVisibleToMarket: true
+            }
+        )
         .sort({ createdAt: -1 }) // newest first
         .skip(skip)
         .limit(limit)
-        .select('image title price condition'); // Only return needed fields
+        //.select('image title price condition address location'); // Only return needed fields
 
         res.status(200).json(listings);
     } catch (err) {
@@ -54,8 +81,54 @@ const getListings = asyncHandler(async (req,res) => {
     }
 })
 
+// @desc    Get Listings
+// @route   GET /api/listings/:id
+// @access Private
+// const getListings = asyncHandler(async (req,res) => {
+//     const listings = await Listing.find()
+//     res.status(200).json(listings);
+// })
+const getListingById = asyncHandler(async (req,res) => {
+    try {
+        const id = req.params.id
+
+        const listing = await Listing.findById(id).populate('sellerId')
+        if(!listing){
+            res.status(400)
+            throw new Error('Listing not found')
+        }
+        res.status(200).json(listing);
+    } catch (err) {
+        console.error('Error fetching listings:', err);
+        res.status(500).json({ error: 'Server error' });
+    }
+})
+
+// @desc    Get Listings by userId
+// @route   GET /api/listings/:userId
+// @access Private
+const getListingByUserId = asyncHandler(async (req,res) => {
+    try {
+        const userId = req.params.userId
+        console.log(`getListingByUserId userId ${userId}`)
+        const listings = await Listing.find({ sellerId: userId }).sort({ createdAt: -1 });
+        console.log(`getListingByUserId listings ${listings}`)
+        const count = await Listing.countDocuments({ sellerId: userId });
+
+        if(!listings){
+            res.status(400)
+            throw new Error('Listing not found')
+        }
+        res.status(200).json({count,listings});
+    } catch (err) {
+        console.error('Error fetching listings:', err);
+        res.status(500).json({ error: 'Server error' });
+    }
+})
+
+
 // @desc    Get Listings by Query
-// @route   GET /api/listing
+// @route   GET /api/listings
 // @access Private
 const getListingsByQuery = asyncHandler(async (req,res) => {
     try {
@@ -63,29 +136,88 @@ const getListingsByQuery = asyncHandler(async (req,res) => {
         const limit = parseInt(req.query.limit) || 5;
         const skip = (page - 1) * limit;
         const search = req.query.search;
-        console.log(` query ${search}`)
+
+        const minLat = parseFloat(req.query.minLat);
+        const maxLat = parseFloat(req.query.maxLat);
+        const minLng = parseFloat(req.query.minLng);
+        const maxLng = parseFloat(req.query.maxLng);
+
+        const categoryId = req.query.categoryId;
+        const type = req.query.type;
+        console.log(`getListingsByQuery search: ${search}, Region: [${minLat}, ${maxLat}], [${minLng}, ${maxLng}]`);
+
         const query = {};
 
         if (search) {
         query.title = { $regex: search, $options: 'i' }; // case-insensitive search
         }
 
+        // Geo bounding box search
+        if (!isNaN(minLat) && !isNaN(maxLat) && !isNaN(minLng) && !isNaN(maxLng)) {
+        query.location = {
+            $geoWithin: {
+            $box: [
+                [minLng, minLat], // bottom-left corner (lng, lat)
+                [maxLng, maxLat], // top-right corner (lng, lat)
+            ],
+            },
+        };
+        }
+     
+         // 🧩 Category Filtering
+        if (categoryId) {
+        if (type === 'main') {
+            query.categoryId = categoryId;
+        } else {
+            query.subCategoryIds = categoryId;
+        }
+        }
+
+        // 🔢 Total matching count
+        const total = await Listing.countDocuments(query);
+
         const listings = await Listing.find(query)
         .sort({ createdAt: -1 }) // newest first
         .skip(skip)
         .limit(limit)
-        .select('image title price condition'); // Only return needed fields
+        .select('image title price condition address location'); // Only return needed fields
 
-        res.status(200).json(listings);
+        res.status(200).json({total,listings});
     } catch (err) {
         console.error('Error fetching listings:', err);
         res.status(500).json({ error: 'Server error' });
     }
 })
 
+// const getListingsByQuery = asyncHandler(async (req,res) => {
+//     try {
+//         const page = parseInt(req.query.page) || 1;
+//         const limit = parseInt(req.query.limit) || 5;
+//         const skip = (page - 1) * limit;
+//         const search = req.query.search;
+//         console.log(` query ${search}`)
+//         const query = {};
+
+//         if (search) {
+//         query.title = { $regex: search, $options: 'i' }; // case-insensitive search
+//         }
+
+//         const listings = await Listing.find(query)
+//         .sort({ createdAt: -1 }) // newest first
+//         .skip(skip)
+//         .limit(limit)
+//         .select('image title price condition address location'); // Only return needed fields
+
+//         res.status(200).json(listings);
+//     } catch (err) {
+//         console.error('Error fetching listings:', err);
+//         res.status(500).json({ error: 'Server error' });
+//     }
+// })
+
 
 // @desc    Get Suggestion
-// @route   GET /api/listing/suggestions
+// @route   GET /api/listings/suggestions
 // @access Private
 const getSuggestions = asyncHandler(async (req,res) => {
     try {
@@ -104,30 +236,11 @@ const getSuggestions = asyncHandler(async (req,res) => {
 })
 
 
-// @desc    Create Listings
-// @route   POST /api/listings
-// @access Private
-const createListing = asyncHandler( async (req,res) => {
-    console.log(req.body);
-    if(!req.body){
-        res.status(400); 
-        throw new Error('Please add a request body');
-    }
-
-      const listing = await Listing.create({
-        title: req.body.title,
-        price: req.body.price,
-        condition: req.body.condition,
-        sellerId:req.body.sellerId
-    })
-
-    res.status(200).json(listing);
-})
-
 module.exports = {
     getListings,
     createListing,
     getListingById,
     getListingsByQuery,
-    getSuggestions
+    getSuggestions,
+    getListingByUserId
 }

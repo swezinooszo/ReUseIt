@@ -1,4 +1,4 @@
-import React,{useEffect,useState} from 'react';
+import React,{useEffect,useId,useState} from 'react';
 import {
   View,
   Text,
@@ -15,20 +15,30 @@ import { useRoute } from '@react-navigation/native';
 import api from '../utils/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {jwtDecode} from 'jwt-decode';
+import styles from '../styles/listingDetailsStyles';
+import { Ionicons } from '@expo/vector-icons';
+import { getTimeSincePosted } from '../utils/listingDetailsUtils';
 
-const screenHeight = Dimensions.get('window').height;
+// const screenHeight = Dimensions.get('window').height;
 const screenWidth = Dimensions.get('window').width;
 
 
+interface User {
+  _id: string;
+  username: string;
+  email: string;
+}
 
 interface Listing {
   _id: string;
-  images: string[];
+  image: string[];
   title: string;
   price: number;
   condition: string;
   description: string;
-  sellerId:string;
+  sellerId:User;
+  dynamicFields?: { [key: string]: string }; // add this
+  createdAt:string;
 }
 
 type MyJwtPayload = {
@@ -40,17 +50,19 @@ const ListingDetails = () => {
     const [listing, setListing] = useState<Listing | null>();
     const [userId, setUserId] = useState('');
     const [token, setToken] = useState('null');
+    const [viewVisible, setViewVisible] = useState(false);
+    const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
     useEffect(() => {
       const loadToken = async () => {
-        console.log("loadToken")
+        console.log("listingDetails Page")
         const storedToken = await AsyncStorage.getItem('userToken');
-        console.log(`storedToken ${storedToken}`)
+       // console.log(`storedToken ${storedToken}`)
         if (storedToken) {
           setToken(storedToken);
           try {
             const decoded = jwtDecode<MyJwtPayload>(storedToken);
-            console.log("Decoded JWT:", decoded.id);
+           // console.log("Decoded JWT:", decoded.id);
 
             // Assuming your token payload includes "id" or "userId"
             setUserId(decoded.id);
@@ -62,133 +74,141 @@ const ListingDetails = () => {
       loadToken();
     }, []);
 
+    //control bottom view hidden or not
+    useEffect(() =>{
+      if(!listing || !userId){
+        return;
+      }
+      console.log(`setViewHidden`);
+      if(listing?.sellerId._id !== userId){
+        setViewVisible(true);
+      }
+    },[listing,userId])
 
+    //retrieve listing details based on id
     useEffect(() => {
         api.get(`/listings/${listingId}`)
         .then(res => setListing(res.data))
         .catch(err => console.error(err));
     }, [listingId]);
 
+    const renderDots = () => {
+    return (
+      <View style={styles.dotsContainer}>
+        {listing?.image.map((_, index) => (
+          <View
+            key={index}
+            style={[
+              styles.dot,
+              index === currentImageIndex ? styles.activeDot : null,
+            ]}
+          />
+        ))}
+      </View>
+    );
+  };
+
+  const onScroll = (event: any) => {
+    const index = Math.round(
+      event.nativeEvent.contentOffset.x / screenWidth
+    );
+    setCurrentImageIndex(index);
+  };
+
+
   const renderImage = ({ item} :{item:string}) => (
     <Image source={{ uri: item }} style={styles.image} />
   );
 
+  const onClose = () =>{
+    router.back();
+  }
+
   return (
-    <SafeAreaView style={styles.safe}>
+    <View style={styles.safe}>
       <View style={styles.container}>
     
+          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+              <Ionicons name="arrow-back-outline" size={26} color="white" onPress={onClose}/>
+          </TouchableOpacity>
+
         {/* Scrollable content */}
-        <ScrollView style={styles.content}>
+        <ScrollView style={styles.scrollViewContainer}>
             <FlatList
-            data={listing?.images}
+            data={listing?.image}
             horizontal
             pagingEnabled
             showsHorizontalScrollIndicator={false}
             renderItem={renderImage}
             keyExtractor={(item, index) => index.toString()}
             style={styles.imageList}
+            onScroll={onScroll}
             />
-
+          {renderDots()}
+          <View style={{padding:16}}>
           <Text style={styles.title}>{listing?.title}</Text>
           <Text style={styles.price}>${listing?.price}</Text>
-           <Text style={styles.details}>Details</Text>
-          <Text style={styles.condition}>Condition: {listing?.condition}</Text>
-          <Text style={styles.description}>{listing?.description}</Text>
+          <Text style={styles.details}>Details</Text>
+          <Text style={styles.label}>Condition</Text>
+          <Text style={styles.text}>{listing?.condition}</Text>
+          {listing?.dynamicFields && Object.entries(listing.dynamicFields).length > 0 && (
+            <>
+              {Object.entries(listing.dynamicFields).map(([key, value]) => (
+                <View key={key}>
+                  <Text style={styles.label}>{key.charAt(0).toUpperCase() + key.slice(1)}</Text>
+                  <Text style={styles.text}>{value}</Text>
+                </View>
+              ))}
+            </>
+          )}
+          {
+            listing?.createdAt && (
+              <>
+              <Text style={styles.label}>Listed</Text>
+              <View style={{flexDirection:'row'}}>
+                <Text style={styles.text}>{getTimeSincePosted(listing?.createdAt)} by</Text>
+                <Text style={styles.sellername}> {listing?.sellerId.username}</Text>
+              </View>
+              </>
+            )
+          }
+            {listing?.description ? (
+            <>
+              <Text style={styles.label}>Description</Text>
+              <Text style={styles.description}>{listing.description}</Text>
+            </>
+          ) : (
+            <View />
+          )}
+         
+          </View>
         </ScrollView>
 
         {/* Fixed buttons */}
-        <View style={styles.footer}>
-          <TouchableOpacity style={styles.buttonOutline}>
+        {viewVisible && (
+        <View style={styles.bottom} >
+          <TouchableOpacity style={styles.makeOfferButton}>
+              <Text style={styles.makeOfferText}>Make Offer</Text>
+          </TouchableOpacity>
+           <TouchableOpacity style={styles.ChatButton} onPress={() => {
+            router.push({pathname:'/(me)/chat',params:{listingId:listingId,receiverId:listing?.sellerId._id,receiverName:listing?.sellerId.username,receiverEmail:listing?.sellerId.email,currentUserId: userId,token:token,price:listing?.price,sellerId:listing?.sellerId._id}})
+            }}>
+              <Text style={styles.ChatText}>Chat</Text>
+          </TouchableOpacity>
+          
+          {/* <TouchableOpacity style={styles.buttonOutline}>
             <Text style={styles.buttonText}>Make Offer</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.buttonFilled} onPress={() => {
-            console.log(` listing Id ${listingId} sellerId ${listing?.sellerId} curretnUserId ${userId} token ${token} `)
-            router.push({pathname:'/(me)/chat',params:{listingId:listingId,receiverId:listing?.sellerId,currentUserId: userId,token:token}})
-          }}>
+            router.push({pathname:'/(me)/chat',params:{listingId:listingId,receiverId:listing?.sellerId._id,receiverName:listing?.sellerId.username,currentUserId: userId,token:token}})
+            }}>
             <Text style={styles.buttonTextWhite}>Chat</Text>
-          </TouchableOpacity>
+          </TouchableOpacity> */}
         </View>
+        )}
       </View>
-    </SafeAreaView>
+    </View>
   );
 };
-
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#fff' },
-  container: { flex: 1 },
-  imageList: {
-    height: screenHeight * 0.4,
-    backgroundColor: '#f9f9f9',
-  },
-  image: {
-    width: screenWidth,
-    height: screenHeight * 0.4,
-    resizeMode: 'cover',
-  },
-  content: {
-    padding: 16,
-    flex: 1,
-    marginBottom: 70, // space for footer
-  },
-   title: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginBottom: 8,
-  },
-  price: {
-    fontSize: 18,
-    marginBottom: 8,
-  },
-   details: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 8,
-    marginTop: 15,
-  },
-  condition: {
-    fontSize: 16,
-    color: '#666',
-    marginBottom: 12,
-  },
-  description: {
-    fontSize: 16,
-    lineHeight: 22,
-  },
-  footer: {
-    position: 'absolute',
-    bottom: 0,
-    flexDirection: 'row',
-    width: '100%',
-    justifyContent: 'space-between',
-    padding: 10,
-    backgroundColor: '#fff',
-    borderTopWidth: 1,
-    borderColor: '#eee',
-  },
-  buttonOutline: {
-    flex: 1,
-    marginRight: 10,
-    borderWidth: 1,
-    borderColor: '#333',
-    padding: 14,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  buttonFilled: {
-    flex: 1,
-    backgroundColor: '#007bff',
-    padding: 14,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  buttonText: {
-    color: '#333',
-    fontWeight: '600',
-  },
-  buttonTextWhite: {
-    color: '#fff',
-    fontWeight: '600',
-  },
-});
 
 export default ListingDetails;

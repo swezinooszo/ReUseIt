@@ -5,10 +5,11 @@ import { MaterialIcons } from "@expo/vector-icons";
 type Props = {
     onChangeText:(text: string) => void,
     value: string,
-    placeholder: string
+    placeholder: string,
+    onSubmitEditing?: () => void;
 }
 
-const CustomTextInputSearchIconEditable = ({ onChangeText,value, placeholder }: Props) => {
+const CustomTextInputSearchIconEditable = ({ onChangeText,value, placeholder,onSubmitEditing }: Props) => {
   return (
     // <TouchableHighlight style={styles.touchableHighlight} underlayColor='#DDDDDD'>
         <View style={styles.inputContainer}>
@@ -18,6 +19,9 @@ const CustomTextInputSearchIconEditable = ({ onChangeText,value, placeholder }: 
             placeholder={placeholder}
             onChangeText={onChangeText}
             value={value}
+            returnKeyType="search" // <-- shows "Search" button on iOS keyboard
+            onSubmitEditing={onSubmitEditing} // <-- triggers search
+            blurOnSubmit={true}
           />
         </View>
       // </TouchableHighlight>

@@ -29,14 +29,6 @@ const CustomButton = ({onPress,text,height = 50,marginTop = 20,borderRadius=25,f
 
 const styles = StyleSheet.create({
     touchablehightligh:{
-        //  borderRadius:18,
-        // borderTopLeftRadius: 8,
-        // borderTopRightRadius: 8,
-        // borderBottomLeftRadius: 8,
-        // borderBottomRightRadius:8,
-        // marginTop:20,
-        // borderWidth:1,
-        //    borderColor:"black"
     },
     button:{
         alignItems: 'center',

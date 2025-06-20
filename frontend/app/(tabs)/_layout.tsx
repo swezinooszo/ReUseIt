@@ -1,13 +1,15 @@
 import { Tabs,useRouter,Redirect } from 'expo-router';
 import { TabBarIcon } from '../components/navigation/TabBarIcon';
 import { Colors } from '../constants/Color';
-import { useColorScheme,TouchableOpacity } from 'react-native';
+import { useColorScheme,TouchableOpacity,View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '@/context/AuthContext';
+import FontAwesome5 from '@expo/vector-icons/FontAwesome5';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 
 export default function TabsLayout() {
   const colorScheme = useColorScheme();
-  const { isLoggedIn,loading } = useAuth();
+  const { isLoggedIn,loading,logout } = useAuth();
 
     console.log('2. _layout in tabs');
 
@@ -20,6 +22,11 @@ export default function TabsLayout() {
     return <Redirect href="/signin" />;
   }
 
+   const onLogout = () => {
+    console.log('logout clicked')
+      logout();
+    }
+
   return (
     <Tabs
     screenOptions={{
@@ -31,7 +38,7 @@ export default function TabsLayout() {
         options={{
             title: 'Explore',
             tabBarIcon: ({ color, focused }) => (
-            <TabBarIcon name={focused ? 'cart-sharp' : 'cart-outline'} color={color} />
+            <TabBarIcon name={focused ? 'search' : 'search'} color={color} />
             ),
         }}
         />
@@ -40,7 +47,8 @@ export default function TabsLayout() {
         options={{
             title: 'Add Listing',
             tabBarIcon: ({ color, focused }) => (
-            <TabBarIcon name={focused ? 'list-circle' : 'list-circle-outline'} color={color} />
+            // <TabBarIcon name={focused ? 'list-circle' : 'list-circle-outline'} color={color} />
+            <MaterialCommunityIcons name="plus-box" size={24} color={color} />
             ),
         }}
         />
@@ -50,17 +58,27 @@ export default function TabsLayout() {
             title: 'Me',
             headerShown: true,
             tabBarIcon: ({ color, focused }) => (
-            <TabBarIcon name={focused ? 'bar-chart-sharp' : 'bar-chart-outline'} color={color} />
+            // <TabBarIcon name={focused ? 'bar-chart-sharp' : 'bar-chart-outline'} color={color} />
+            <FontAwesome5 name="user-alt" size={24} color={color} />
             ),
             headerRight: () => {
             const router = useRouter();
             return (
+              <View style={{flexDirection:'row'}}>
+                <TouchableOpacity
+                    onPress={onLogout} 
+                    style={{ marginRight: 10 }} // Add some spacing for the icon
+                >
+                    <Ionicons name="log-out-outline" size={24} color="black" />
+                </TouchableOpacity>
+
                 <TouchableOpacity
                     onPress={() => router.push('/(me)/chatlist')} 
                     style={{ marginRight: 10 }} // Add some spacing for the icon
                 >
                     <Ionicons name="chatbubble-ellipses-outline" size={24} color="black" />
                 </TouchableOpacity>
+              </View>
             )
 
             }

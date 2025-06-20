@@ -25,6 +25,7 @@ export default function RootLayout() {
         <Stack>
              <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
               <Stack.Screen name="(explore)" options={{ headerShown: false }} />
+              <Stack.Screen name="(addlisting)" options={{ headerShown: false }} />
               <Stack.Screen name="(me)" options={{ headerShown: false }} />
               <Stack.Screen name="signin" options={{ headerShown: false }} />
               <Stack.Screen name="signup" options={{ headerShown: false }} />
