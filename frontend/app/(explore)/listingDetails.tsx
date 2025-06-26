@@ -18,6 +18,8 @@ import {jwtDecode} from 'jwt-decode';
 import styles from '../styles/listingDetailsStyles';
 import { Ionicons } from '@expo/vector-icons';
 import { getTimeSincePosted } from '../utils/listingDetailsUtils';
+import { MaterialIcons } from '@expo/vector-icons';
+import ListingDetailsComponent from '../components/ListingDetailsComponent';
 
 // const screenHeight = Dimensions.get('window').height;
 const screenWidth = Dimensions.get('window').width;
@@ -36,6 +38,7 @@ interface Listing {
   price: number;
   condition: string;
   description: string;
+  address: string;
   sellerId:User;
   dynamicFields?: { [key: string]: string }; // add this
   createdAt:string;
@@ -51,7 +54,7 @@ const ListingDetails = () => {
     const [userId, setUserId] = useState('');
     const [token, setToken] = useState('null');
     const [viewVisible, setViewVisible] = useState(false);
-    const [currentImageIndex, setCurrentImageIndex] = useState(0);
+    // const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
     useEffect(() => {
       const loadToken = async () => {
@@ -92,36 +95,40 @@ const ListingDetails = () => {
         .catch(err => console.error(err));
     }, [listingId]);
 
-    const renderDots = () => {
-    return (
-      <View style={styles.dotsContainer}>
-        {listing?.image.map((_, index) => (
-          <View
-            key={index}
-            style={[
-              styles.dot,
-              index === currentImageIndex ? styles.activeDot : null,
-            ]}
-          />
-        ))}
-      </View>
-    );
-  };
+  //   const renderDots = () => {
+  //   return (
+  //     <View style={styles.dotsContainer}>
+  //       {listing?.image.map((_, index) => (
+  //         <View
+  //           key={index}
+  //           style={[
+  //             styles.dot,
+  //             index === currentImageIndex ? styles.activeDot : null,
+  //           ]}
+  //         />
+  //       ))}
+  //     </View>
+  //   );
+  // };
 
-  const onScroll = (event: any) => {
-    const index = Math.round(
-      event.nativeEvent.contentOffset.x / screenWidth
-    );
-    setCurrentImageIndex(index);
-  };
+  // const onScroll = (event: any) => {
+  //   const index = Math.round(
+  //     event.nativeEvent.contentOffset.x / screenWidth
+  //   );
+  //   setCurrentImageIndex(index);
+  // };
 
 
-  const renderImage = ({ item} :{item:string}) => (
-    <Image source={{ uri: item }} style={styles.image} />
-  );
+  // const renderImage = ({ item} :{item:string}) => (
+  //   <Image source={{ uri: item }} style={styles.image} />
+  // );
 
   const onClose = () =>{
     router.back();
+  }
+
+  const onSellerDetails = () => {
+    router.push({pathname:'/(explore)/sellerDetails',params:{sellerId:listing?.sellerId._id}})
   }
 
   return (
@@ -133,7 +140,11 @@ const ListingDetails = () => {
           </TouchableOpacity>
 
         {/* Scrollable content */}
-        <ScrollView style={styles.scrollViewContainer}>
+         { listing && (
+            <ListingDetailsComponent listing={listing}></ListingDetailsComponent>
+        )
+        }
+        {/* <ScrollView style={styles.scrollViewContainer}>
             <FlatList
             data={listing?.image}
             horizontal
@@ -167,7 +178,9 @@ const ListingDetails = () => {
               <Text style={styles.label}>Listed</Text>
               <View style={{flexDirection:'row'}}>
                 <Text style={styles.text}>{getTimeSincePosted(listing?.createdAt)} by</Text>
-                <Text style={styles.sellername}> {listing?.sellerId.username}</Text>
+                <TouchableOpacity onPress={onSellerDetails}>
+                 <Text style={styles.sellername}> {listing?.sellerId.username}</Text>
+                </TouchableOpacity>
               </View>
               </>
             )
@@ -180,30 +193,23 @@ const ListingDetails = () => {
           ) : (
             <View />
           )}
-         
+          <Text style={styles.label}>Address</Text>
+          <Text style={styles.text}>{listing?.address}</Text>
           </View>
-        </ScrollView>
+        </ScrollView> */}
 
         {/* Fixed buttons */}
         {viewVisible && (
         <View style={styles.bottom} >
-          <TouchableOpacity style={styles.makeOfferButton}>
-              <Text style={styles.makeOfferText}>Make Offer</Text>
-          </TouchableOpacity>
+            <TouchableOpacity>
+            <MaterialIcons name="favorite-border" size={35} color="black" />
+            </TouchableOpacity>
+
            <TouchableOpacity style={styles.ChatButton} onPress={() => {
             router.push({pathname:'/(me)/chat',params:{listingId:listingId,receiverId:listing?.sellerId._id,receiverName:listing?.sellerId.username,receiverEmail:listing?.sellerId.email,currentUserId: userId,token:token,price:listing?.price,sellerId:listing?.sellerId._id}})
             }}>
               <Text style={styles.ChatText}>Chat</Text>
           </TouchableOpacity>
-          
-          {/* <TouchableOpacity style={styles.buttonOutline}>
-            <Text style={styles.buttonText}>Make Offer</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.buttonFilled} onPress={() => {
-            router.push({pathname:'/(me)/chat',params:{listingId:listingId,receiverId:listing?.sellerId._id,receiverName:listing?.sellerId.username,currentUserId: userId,token:token}})
-            }}>
-            <Text style={styles.buttonTextWhite}>Chat</Text>
-          </TouchableOpacity> */}
         </View>
         )}
       </View>

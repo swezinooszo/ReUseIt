@@ -9,36 +9,87 @@ const meStyles = StyleSheet.create({
        // padding:20,
         backgroundColor:'white'
     },
-    topViewContainer:{
-        height: 100,
-        //backgroundColor:'lightblue',
-        flexDirection:'row',
-        alignItems:'center',
-        padding:20
-    },
-    userListingContainer:{
+     userListingContainer:{
        flex:1,
       // backgroundColor:'green'
     },
-    image:{
-        width:60,
-        height:60,
-        borderRadius:30,
+    cardContainer: {
+      alignItems: 'center',
+      marginTop: 30,
+    },
+    // topViewContainer:{
+    //     height: 170,
+    //     backgroundColor:'lightblue',
+    // },
+     imageContainer: {
+      zIndex: 2,//zIndex: 2 brings the image in front
+      alignItems: 'center',
+    },
+    // imageContainer:{
+    //   alignItems:'center'
+    // },
+      image:{
+        width: 100,
+        height: 100,
+        borderRadius: 50,
+        position: 'absolute',//When you want a view (like a profile image) to visually "float" over another (like a card), you give it:
+        top: 0,
+    },
+
+    //   image:{
+    //     width:80,
+    //     height:80,
+    //     borderRadius:40,
+    // },
+     UserInfoContainer:{
+        backgroundColor: 'white',
+        width: '90%',
+        borderRadius: 12,
+        marginTop: 50, // push the card down below the image
+        paddingTop: 60, // leave space for the overlapping image
+        paddingBottom: 20,
+        paddingHorizontal: 16,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.1,
+        shadowRadius: 6,
+        elevation: 5, // for Android shadow
+        zIndex: 1,
     },
      userTitleContainer:{
-        marginLeft:10,
+       alignItems:'center',
+      //backgroundColor:'yellow'
     },
     usernameTitle:{
-        fontSize: 14,
-        fontWeight:'bold'
+        fontSize: 18,
+        fontWeight:'bold',
+        color:'#5FCC7D',
+        marginTop:10
     },
     yearsTitle:{
         fontSize: 14,
+        fontWeight:'bold'
+    },
+     yearsLabel:{
+        fontSize: 14,
+        color:'grey'
     },
     reviewsTitle:{
         fontSize: 14,
-        marginTop:5,
-        color: 'grey',
+        fontWeight:'bold'
+    },
+     reviewLabel:{
+        fontSize: 14,
+        color:'grey'
+    },
+     profileTextMainContainer:{
+       flexDirection:'row',
+       marginTop:10,
+      // backgroundColor:'pink'
+    },
+    profileTextContainer:{
+       flex: 1,   
+      alignItems:'center',
     },
     listingCountTitle:{
         fontSize: 16,

@@ -10,7 +10,9 @@ import { Image } from 'react-native';
         const blob = await response.blob();
     
         // Generate a unique filename
-        const fileName = `images/${Date.now()}.jpg`;
+        //const fileName = `images/${Date.now()}.jpg`;
+        const randomSuffix = Math.floor(Math.random() * 100000);
+        const fileName = `images/${Date.now()}-${randomSuffix}.jpg`;
     
         // Reference to Firebase Storage
         const storageRef = ref(storage, fileName);

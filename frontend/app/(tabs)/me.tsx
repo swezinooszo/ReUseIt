@@ -8,6 +8,9 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import {jwtDecode} from 'jwt-decode';
 import api from '../utils/api';
 import { MaterialIcons } from '@expo/vector-icons';
+import { getUserExperience } from '../utils/meUtils';
+import { useFocusEffect } from '@react-navigation/native';
+import { useCallback } from 'react';
 
 interface User {
     _id:string;
@@ -28,40 +31,20 @@ const me = () => {
     const [listingCount,setListingCount] = useState(0);
     const [listings, setListings] = useState<Listing[]>([]);
     const { logout } = useAuth();
-
     const onLogout = () => {
       logout();
     }
 
-    const getUserExperience = (createdAt: string): string => {
-        const createdDate = new Date(createdAt);
-        const now = new Date();
-
-        const diffInMs = now.getTime() - createdDate.getTime();
-        const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
-
-        const years = Math.floor(diffInDays / 365);
-        const months = Math.floor((diffInDays % 365) / 30);
-        const days = diffInDays % 30;
-
-        if (years > 0) {
-            return `${years} year${years > 1 ? 's' : ''}`;
-        } else if (months > 0) {
-            return `${months} month${months > 1 ? 's' : ''}`;
-        } else {
-            return `${days} day${days > 1 ? 's' : ''}`;
-        }
-    };
-
+    // ******* get listings by UserId *********
     useEffect(()=>{
-        console.log(`useEffect getListingsByUserId ${user}`)
+       // console.log(`useEffect getListingsByUserId ${user}`)
         if(!user) return;
         const getListingsByUserId = async () =>{
               try {
                 const response = await api.get(`/listings/user/${user?._id}`);
                 const res = response.data;
                 const { count, listings } = response.data;
-                console.log(`me listings ${res}`)
+                //console.log(`me listings ${res}`)
                 setListings(listings)
                 setListingCount(count);
             } catch (error) {
@@ -72,24 +55,43 @@ const me = () => {
         getListingsByUserId();
     },[user])
 
-    useEffect(()=>{
-        const getUserProfile = async () => {
+    // ******* get user profile (user Id get from token when user login) *********
+    //detect when the screen comes into focus and then fetch the user profile and listings.
+    useFocusEffect(
+        useCallback(() => {
+            const getUserProfile = async () => {
+            console.log('call getUserProfile')
             try {
                 const response = await api.get('/users/me');
                 const user = response.data;
                 setUser(user);
-                console.log('me User profile:', user);
+                console.log('Refreshed user profile:', user);
             } catch (error) {
                 console.error('Failed to fetch user profile:', error);
             }
-        }
-        getUserProfile();
-    },[])
+            };
+
+            getUserProfile();
+        }, [])
+    );
+    // useEffect(()=>{
+    //     const getUserProfile = async () => {
+    //         try {
+    //             const response = await api.get('/users/me');
+    //             const user = response.data;
+    //             setUser(user);
+    //             console.log('me User profile:', user);
+    //         } catch (error) {
+    //             console.error('Failed to fetch user profile:', error);
+    //         }
+    //     }
+    //     getUserProfile();
+    // },[])
 
     const renderItem = ({ item }:{item:Listing}) => (
     <View style={styles.card}>
       <TouchableOpacity onPress={() => {
-            router.push({pathname:'/(explore)/listingDetails',params:{listingId:item._id}})
+            router.push({pathname:'/(me)/editListingDetails',params:{listingId:item._id}})
       }}>
       <View>
         <View style={{position:'relative'}}>
@@ -109,7 +111,7 @@ const me = () => {
          {/* <Text style={styles.reservedItem}>RESERVED</Text> */}
         </View>
         <View style={styles.textContainer}>
-          <View>
+          <View style={{flex:1,}}>
             <Text style={styles.title} numberOfLines={2}>{item.title}</Text>
             <Text style={styles.price}>${item.price}</Text>
             <Text style={styles.condition}>{item.condition}</Text>
@@ -118,15 +120,6 @@ const me = () => {
             <MaterialIcons name="favorite-border" size={24} color="black" />
           </TouchableOpacity>
         </View>
-
-        {/* <View style={styles.descriptionRow}>
-          <Text style={styles.description} numberOfLines={2}>{item.title}</Text>
-          <TouchableOpacity>
-            <MaterialIcons name="favorite-border" size={24} color="black" />
-          </TouchableOpacity>
-        </View>
-        <Text style={styles.price}>${item.price}</Text>
-        <Text style={styles.condition}>{item.condition}</Text> */}
       </View>
       </TouchableOpacity>
     </View>
@@ -135,31 +128,31 @@ const me = () => {
     return(
         <SafeAreaProvider>
             <SafeAreaView style={styles.container}>
-                {/* <View style={styles.topViewContainer}>
-                    <Image style={styles.image} source={require('../../assets/images/default_profile.jpg')} >
-
-                    </Image>
-                    <View style={styles.userTitleContainer}>
-                        <Text style={styles.usernameTitle}>{user?.username}</Text>
-                        <Text style={styles.yearsTitle}>{user?.createdAt ? `${getUserExperience(user.createdAt)} in ReUseIt` : ''}</Text>
-                        <Text style={styles.reviewsTitle}>0 reviews</Text>
-                    </View>
-                </View> */}
                  <View style={styles.userListingContainer}>
                     <FlatList
                     data={listings}
                      ListHeaderComponent={
-                        <View style={{flexDirection:'column'}}>
-                            <View style={styles.topViewContainer}>
-                                <Image style={styles.image} source={require('../../assets/images/default_profile.jpg')} >
-
-                                </Image>
+                        <View style={styles.cardContainer}>
+                             <View style={styles.imageContainer}>
+                                <Image style={styles.image} source={require('../../assets/images/default_profile.jpg')} />
+                            </View>
+                            <View style={styles.UserInfoContainer}>
                                 <View style={styles.userTitleContainer}>
                                     <Text style={styles.usernameTitle}>{user?.username}</Text>
-                                    <Text style={styles.yearsTitle}>{user?.createdAt ? `${getUserExperience(user.createdAt)} in ReUseIt` : ''}</Text>
-                                    <Text style={styles.reviewsTitle}>0 reviews</Text>
+                                 </View>
+                                <View style={styles.profileTextMainContainer}>
+                                    <View style={styles.profileTextContainer}>
+                                        <Text style={styles.reviewsTitle}>None yet</Text>
+                                        <Text style={styles.reviewLabel}>Reviews</Text>
+                                    </View>
+                                     <View style={styles.profileTextContainer}>
+                                        <Text style={styles.yearsTitle}>{user?.createdAt ? `${getUserExperience(user.createdAt)}` : ''}</Text>
+                                        <Text style={styles.yearsLabel}>on ReUseIt</Text>
+                                    </View>
+                                       
                                 </View>
                             </View>
+
                             <View style={{padding:10}}>
                                 <Text style={styles.listingCountTitle}>{listingCount != 0 ? `${listingCount} listings` : '0 listing'}</Text>
                             </View>

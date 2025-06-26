@@ -5,42 +5,108 @@ const nodemailer = require('nodemailer');
 const crypto = require('crypto');
 const bcrypt = require('bcryptjs');
 
-const sendOTP = asyncHandler (async (req, res) => {
-  const {username,email,password} = req.body
-  // const { email } = req.body.email;
-  // const { password } = req.body.password;
+const sendOTP = asyncHandler(async (req, res) => {
+  const { username, email, password } = req.body;
 
-  console.log(`sendOTP username ${username}   email ${email}  password${password}`);
-  const existingUser = await User.findOne({ email });
-  if (existingUser) {
-    return res.status(400).json({ message: 'Email already registered' });
+  let user = await User.findOne({ email });
+
+  if (user) {
+    if (user.isVerified) {
+      return res.status(400).json({ message: 'Email already registered and verified' });
+    } else {
+      // Update the existing (unverified) user with a new OTP and updated expiry
+      const otp = Math.floor(100000 + Math.random() * 900000).toString();
+      user.otp = otp;
+      user.otpExpires = new Date(Date.now() + 5 * 60 * 1000);//new Date(Date.now() + 10 * 60 * 1000); // 5 mins
+      await user.save();
+
+      // Send new OTP email
+      await sendEmail(email, otp);
+      return res.status(200).json({ message: 'OTP resent to email' });
+    }
   }
 
+  // First-time registration
   const hashedPassword = await bcrypt.hash(password, 10);
-
   const otp = Math.floor(100000 + Math.random() * 900000).toString();
-  const otpExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 mins
-
-  const user = await User.create({ username, email, password: hashedPassword, otp, otpExpires });
-
-  // Send email
-    const transporter = nodemailer.createTransport({
-        service: 'gmail',
-        auth: {
-            user: 'grocerysmartteam@gmail.com',// process.env.EMAIL_USER
-            pass: 'iewhjomvbbvfmiwe', // Your email password (or app-specific password)
-        },
-    });
+ // const otpExpires = new Date(Date.now() + 10 * 60 * 1000);
+  const otpExpires = new Date(Date.now() + 5 * 60 * 1000); // 5 mins
 
 
-    await transporter.sendMail({
-        to: email,
-        subject: 'Your OTP Code',
-        text: `Your OTP is ${otp}. It will expire in 10 minutes.`
-    });
+  user = await User.create({ username, email, password: hashedPassword, otp, otpExpires });
 
-  res.json({ message: 'OTP sent to email' });
+  await sendEmail(email, otp);
+  res.status(200).json({ message: 'OTP sent to email' });
 });
+
+const sendEmail = async (email, otp) => {
+  const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+      user: 'reuseithelpdesk@gmail.com',
+      pass: 'icmhczaeukkwilkv', 
+    },
+  });
+
+  const mailOptions = {
+    from: '"ReUseIt Verification" <reuseithelpdesk@gmail.com>',
+    to: email,
+    subject: 'Your ReUseIt OTP Code',
+    text: `Your OTP is ${otp}. It will expire in 5 minutes.`,
+    html: `
+      <p>Hi there,</p>
+      <p>We just want to be sure that this email belongs to you.</p>
+      <p>To proced, enther this verification code.</p>
+      <p><strong>Your One-Time Password (OTP):</strong> <span style="font-size: 18px;"><strong>${otp}</strong></span></p>
+      <p>By verifying your email, you can begin selling on ReUseIt. This code is valid for the next <strong>5 minutes</strong>. Please use it to complete your verification.</p>
+      <p>If you didn’t request this code, you can safely ignore this message.</p>
+      <br/>
+      <p>Thanks,<br/>The ReUseIt Team</p>
+      <hr/>
+      <small>ReUseIt • Reuse. Reduce. Rethink.<br/>reuseithelpdesk@gmail.com</small>
+    `,
+  };
+
+    await transporter.sendMail(mailOptions);
+};
+
+
+// const sendOTP = asyncHandler (async (req, res) => {
+//   const {username,email,password} = req.body
+//   // const { email } = req.body.email;
+//   // const { password } = req.body.password;
+
+//   console.log(`sendOTP username ${username}   email ${email}  password${password}`);
+//   const existingUser = await User.findOne({ email });
+//   if (existingUser) {
+//     return res.status(400).json({ message: 'Email already registered' });
+//   }
+
+//   const hashedPassword = await bcrypt.hash(password, 10);
+
+//   const otp = Math.floor(100000 + Math.random() * 900000).toString();
+//   const otpExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 mins
+
+//   const user = await User.create({ username, email, password: hashedPassword, otp, otpExpires });
+
+//   // Send email
+//     const transporter = nodemailer.createTransport({
+//         service: 'gmail',
+//         auth: {
+//             user: 'grocerysmartteam@gmail.com',// process.env.EMAIL_USER
+//             pass: 'iewhjomvbbvfmiwe', // Your email password (or app-specific password)
+//         },
+//     });
+
+
+//     await transporter.sendMail({
+//         to: email,
+//         subject: 'Your OTP Code',
+//         text: `Your OTP is ${otp}. It will expire in 10 minutes.`
+//     });
+
+//   res.json({ message: 'OTP sent to email' });
+// });
 
 const verifyOTP = asyncHandler(async (req, res) => {
   const { email, otp } = req.body;
@@ -59,7 +125,7 @@ const verifyOTP = asyncHandler(async (req, res) => {
     expiresIn: '7d'
   });
 
-  res.json({ token, user });
+  res.status(200).json({ token, user });
 });
 
 const loginUser = async (req, res) => {
@@ -80,7 +146,7 @@ const loginUser = async (req, res) => {
     });
 
     // 4. Return token and user info
-    res.json({
+    res.status(200).json({
       token,
       user: {
         id: user._id,

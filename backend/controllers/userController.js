@@ -59,7 +59,24 @@ const getUserProfile = asyncHandler(async (req,res) => {
        throw new Error('User not found');
     }
 
-    res.json(user);
+    res.status(200).json(user);
+  } catch (err) {
+    console.error('Token verification failed:', err);
+    res.status(401).json({ message: 'Invalid or expired token' });
+  }
+});
+
+const getUserProfileById = asyncHandler(async (req,res) => {
+  const userId = req.params.userId
+  try {
+     console.log(`getUserProfileById userId ${userId}`)
+    const user = await User.findById(userId).select('-password');
+    if (!user) {
+       res.status(404); 
+       throw new Error('User not found');
+    }
+
+    res.status(200).json(user);
   } catch (err) {
     console.error('Token verification failed:', err);
     res.status(401).json({ message: 'Invalid or expired token' });
@@ -69,5 +86,6 @@ const getUserProfile = asyncHandler(async (req,res) => {
 module.exports = {
     getUsers,
     createUser,
-    getUserProfile
+    getUserProfile,
+    getUserProfileById
 }

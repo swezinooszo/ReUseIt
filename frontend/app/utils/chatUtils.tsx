@@ -23,3 +23,21 @@ export const showConfirmationDialog = (
     { cancelable: true }
   );
 };
+
+export const showAlertDialog = (
+  title: string,
+  message: string,
+  onConfirm: () => void,
+) => {
+  Alert.alert(
+    title,
+    message,
+    [
+      {
+        text: 'OK',
+        onPress: onConfirm,
+      },
+    ],
+    { cancelable: true }
+  );
+};

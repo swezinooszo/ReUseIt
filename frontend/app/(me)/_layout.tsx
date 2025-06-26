@@ -36,7 +36,10 @@ export default function TabLayout() {
         //     ),
         // })}
         />
-
+         <Stack.Screen name="editListingDetails" options={{headerShown:false}}/>
+         <Stack.Screen name="editListingDetailsForm" options={{headerShown:false}}/>
+          <Stack.Screen name="editListingDetailsSubForm" options={{headerShown:false}}/>
+         
     </Stack>
   );
 }

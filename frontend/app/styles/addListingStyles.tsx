@@ -19,11 +19,12 @@ const styles = StyleSheet.create({
      photoContainer:{
         width:150,
         height:120,
-        borderWidth:2,
-        borderRadius:15,
+       // borderWidth:.5,
+        borderRadius:20,
         // borderColor:'#D9D9D9',
         alignItems:'center',
-        justifyContent:'center'
+        justifyContent:'center',
+        backgroundColor:'#dcdcdc99',
     },
     label: {
         fontSize:16,

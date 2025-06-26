@@ -134,7 +134,34 @@ const searchResultStyles = StyleSheet.create({
     categoryTitle: {
       fontSize: 16, 
       fontWeight:'bold',
-    }
+    },
+    priceView:{
+      backgroundColor: 'white',
+      paddingVertical: 6,
+      paddingHorizontal: 12,
+      borderRadius: 24,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 1 },
+      shadowOpacity: 0.1,
+      shadowRadius: 3,
+      elevation: 3, // Android shadow
+      alignSelf: 'flex-start', 
+    },
+     overlayCard: {
+    position: 'absolute',
+    bottom: 140,
+    left: 20,
+    right: 20,
+    backgroundColor: 'white',
+    borderRadius: 15,
+    padding: 15,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.15,
+    shadowRadius: 5,
+    elevation: 5
+  },
+    // {backgroundColor:'white',padding:5,paddingHorizontal:10,borderWidth:1,borderColor:'gray',borderRadius:20}
    
 })
 

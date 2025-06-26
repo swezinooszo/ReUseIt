@@ -1,5 +1,5 @@
 import {SafeAreaView, SafeAreaProvider} from 'react-native-safe-area-context';
-import { StyleSheet,View,Text,Button,Image,ScrollView } from 'react-native';
+import { StyleSheet,View,Text,Button,Image,ScrollView,ActivityIndicator } from 'react-native';
 import { useEffect, useState } from 'react';
 import { router, useLocalSearchParams } from 'expo-router';
 import { AntDesign, Ionicons } from "@expo/vector-icons";
@@ -8,6 +8,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import {jwtDecode} from 'jwt-decode';
 import api from '../utils/api';
 import { uploadAndSaveImage,compressImages } from '../utils/itemReviewFromUtils';
+import styles from '../styles/itemReviewFormStyles';
+import LottieView from 'lottie-react-native';
 
 type MyJwtPayload = {
   id: string; // or userId: string;
@@ -25,6 +27,8 @@ const itemReviewForm = () =>{
     const [parsedMainCategory, setParsedMainCategory] = useState<Category | null>(null);
     const [parsedSubCategory, setParsedSubCategory] = useState<Category | null>(null);
     const [userId,setUserId] = useState('');
+    const [loading, setLoading] = useState(false);
+
 
     // retrieve userId for listing submitting
     useEffect(() => {
@@ -71,6 +75,8 @@ const itemReviewForm = () =>{
     // submit to server
     const onSubmit = async()  =>{
         try{
+            setLoading(true); // Show loading
+
             // 1. Get form data 
             const parsedForm = typeof form === 'string' ? JSON.parse(form) : {};
 
@@ -96,7 +102,7 @@ const itemReviewForm = () =>{
                 price: price,
                 description: description,
                 categoryId: parsedMainCategory?._id,
-                subCategoryIds: parsedSubCategory ? [parsedSubCategory._id] : [],
+                subCategoryIds: parsedSubCategory ? [parsedSubCategory._id] : [],// currently, each listing only has one sub category even though the field format is array. later may have 2 or more
                 dynamicFields: rest,
                 sellerId: userId,
                 image: uploadedImageUrls, //uploaded URLs here
@@ -111,9 +117,11 @@ const itemReviewForm = () =>{
                 },
             })
             console.log('Listing submitted successfully:', res.data);
-            router.push('/(addlisting)/listingResult')
+            router.push({pathname: '/(addlisting)/listingResult',params: { images: images,title:title,price:price}})
         }catch(error){
             console.log(`submitting server error ${error}`)
+        }finally {
+            setLoading(false); // Hide loading
         }
     }
 
@@ -140,7 +148,6 @@ const itemReviewForm = () =>{
                 .filter(([key]) => key !== 'longitude' && key !== 'latitude') // ❌ exclude these
                 .map(([key, val]) => (
                 <View key={key} style={styles.viewContainer}>
-                {/* <Text style={styles.labelBold}>{key.charAt(0).toUpperCase() + key.slice(1)}</Text> */}
                 <Text style={styles.labelWithSmallPadding}>
                      • {key === 'price' ? `$${val}` : String(val)}
                 </Text>
@@ -148,48 +155,30 @@ const itemReviewForm = () =>{
             ))}
 
         </ScrollView>
-            <CustomButton text="Submit" height={40} onPress={onSubmit} borderRadius={5} ></CustomButton>
+            <CustomButton backgroundColor='#5FCC7D' text="Submit" height={50} fontWeight='bold' onPress={onSubmit} borderRadius={5} ></CustomButton>
       </SafeAreaView>
+
+       {/* loading indicator */}
+        {loading && (
+        <View style={styles.loadingOverlay}>
+            <View style={styles.loadingBox}>
+             <LottieView
+                source={require('../../assets/animation/marketplace.json')}
+                autoPlay
+                loop
+                style={styles.loadingAnimation}
+            />
+            <Text style={styles.loadingText}>We're posting your listing onto the market place</Text>
+            </View>
+        </View>
+        )}
+
+
       </SafeAreaProvider>
     )
 }
 
-const styles = StyleSheet.create({
-     container:{
-        flex:1,
-        padding:20,
-        backgroundColor:'white'
-    },
-     title: {
-        fontSize:20,
-        fontWeight:'bold',
-        marginTop:30
-    },
-    viewContainer:{
-       // marginTop:10
-    },
-    label: {
-        fontSize:16,
-        marginTop:10
-    },
-    labelWithSmallPadding: {
-        fontSize:16,
-        marginTop:5
-    },
-    labelBold: {
-        fontSize:16,
-        marginTop:10,
-        fontWeight:'bold'
-    },
-    imagesContainer:{
-        marginTop:10,
-        padding:10,
-    },
-    image: {
-        width: 100,
-        height: 100,
-        borderRadius: 8,
-        marginRight: 8,
-    },
-})
+// const styles = StyleSheet.create({
+
+// })
 export default itemReviewForm;

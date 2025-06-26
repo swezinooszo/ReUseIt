@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" id="bread-oven">
+  <rect width="60" height="56" x="2" y="2" fill="#c64635" rx="4"></rect>
+  <path fill="#e2e7f7" d="M58,2H6A4,4,0,0,0,2,6V17H62V6A4,4,0,0,0,58,2Z"></path>
+  <path fill="#f6f8ff" d="M12,13.991H62V6a4,4,0,0,0-4-4H6V7.991A6,6,0,0,0,12,13.991Z"></path>
+  <rect width="52" height="28" x="6" y="26" fill="#76d8ff" rx="1.34"></rect>
+  <path fill="#ccf1ff" d="M56.66,26H9.326V38.378A11.617,11.617,0,0,0,20.943,50H58V27.34A1.34,1.34,0,0,0,56.66,26Z" opacity=".7"></path>
+  <path fill="#595a5d" d="M6 58l.5 2.02A2.613 2.613 0 009.039 62h4.92a2.613 2.613 0 002.535-1.978L17 58zM47 58l.5 2.02A2.613 2.613 0 0050.039 62h4.92a2.613 2.613 0 002.535-1.978L58 58z"></path>
+  <rect width="38" height="3" x="13" y="20" fill="#e2e7f7" rx="1.5"></rect>
+  <rect width="34" height="3" x="15" y="40" fill="#f6f8ff" rx="1.5"></rect>
+  <polygon fill="#e2e7f7" points="46 43 44 50 20 50 18 43 46 43"></polygon>
+  <path fill="#ffd55d" d="M17,40V38a5,5,0,0,1,10,0v0a5,5,0,0,1,10,0v0a5,5,0,0,1,10,0v2Z"></path>
+  <path fill="#c64635" d="M13,4a8.009,8.009,0,0,0-8,8H7a6,6,0,0,1,12,0h2A8.009,8.009,0,0,0,13,4Z"></path>
+  <path fill="#ccc" d="M14,9.184V7H12V9.184a3,3,0,1,0,2,0ZM13,13a1,1,0,1,1,1-1A1,1,0,0,1,13,13Z"></path>
+  <rect width="18" height="9" x="23" y="5" fill="#ffd55d" rx="2"></rect>
+  <rect width="2" height="5" x="27" y="7" fill="#c64635"></rect>
+  <rect width="2" height="4" x="31" y="8" fill="#c64635"></rect>
+  <rect width="2" height="3" x="35" y="9" fill="#c64635"></rect>
+  <circle cx="47" cy="10" r="3" fill="#ccc"></circle>
+  <circle cx="56" cy="10" r="3" fill="#ccc"></circle>
+  <path fill="#d9d5ca" d="M6,52.66A1.34,1.34,0,0,0,7.34,54H56.66A1.34,1.34,0,0,0,58,52.66V50H6Z"></path>
+  <path fill="#ffe69e" d="M27 38a4.973 4.973 0 00-8.179-3.829V36.4a2.666 2.666 0 002.665 2.666H27zM37 38a4.974 4.974 0 00-8.18-3.829V36.4a2.667 2.667 0 002.666 2.666H37zM47 38a4.973 4.973 0 00-8.179-3.829V36.4a2.666 2.666 0 002.665 2.666H47z" opacity=".5"></path>
+  <path fill="#f6f8ff" d="M51,21.5A1.5,1.5,0,0,0,49.5,20H18.217a1.5,1.5,0,0,0,0,3H49.5A1.5,1.5,0,0,0,51,21.5Z"></path>
+</svg>

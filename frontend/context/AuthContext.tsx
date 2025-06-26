@@ -52,6 +52,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const login = async (newToken: string) => {
     await AsyncStorage.setItem('userToken', newToken);
+    console.log(`login in AuthContext ${newToken}`)
     setToken(newToken);
     router.replace('/');
   };

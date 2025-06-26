@@ -65,9 +65,26 @@ const getGroupedCategories = async (req, res) => {
   }
 };
 
+// @desc    Get Category by ID
+// @route   GET /api/categories/:id
+// @access  Private
+const getCategoryById = asyncHandler(async (req, res) => {
+    const { Id } = req.params;
+
+    const category = await Category.findById(Id);
+    if (!category) {
+        res.status(404);
+        throw new Error('Category not found');
+    }
+
+    res.status(200).json(category);
+});
+
+
 module.exports = {
     getCategories,
     createCategory,
     getGroupedCategories,
-    getSubCategories
+    getSubCategories,
+    getCategoryById
 }

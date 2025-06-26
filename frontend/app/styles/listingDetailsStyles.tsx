@@ -49,14 +49,24 @@ const listingDetailsStyles = StyleSheet.create({
     fontSize: 16,
     lineHeight: 22,
   },
-   bottom: {
+    bottom: {
     flexDirection: 'row',
     height:100,
     padding: 10,
     borderWidth: 1,
     borderColor: '#eee',
+    alignItems:'center',
+    justifyContent:'flex-end',
     gap:10,
   },
+  //  bottom: {
+  //   flexDirection: 'row',
+  //   height:100,
+  //   padding: 10,
+  //   borderWidth: 1,
+  //   borderColor: '#eee',
+  //   gap:10,
+  // },
   makeOfferButton: {
     flex:1,
     height:50,
@@ -71,7 +81,7 @@ const listingDetailsStyles = StyleSheet.create({
     fontSize:16,
     fontWeight:'bold'
   },
-  ChatButton: {
+   ChatButton: {
     flex:1,
     height:50,
     backgroundColor:'#5FCC7D',
@@ -79,6 +89,14 @@ const listingDetailsStyles = StyleSheet.create({
     justifyContent:'center',
     borderRadius:5
   },
+  // ChatButton: {
+  //   flex:1,
+  //   height:50,
+  //   backgroundColor:'#5FCC7D',
+  //   alignItems:'center',
+  //   justifyContent:'center',
+  //   borderRadius:5
+  // },
   ChatText: {
       fontSize:16,
       fontWeight:'bold',
@@ -142,15 +160,27 @@ const listingDetailsStyles = StyleSheet.create({
     top: 40, // Adjust depending on your status bar height
     left: 16,
     zIndex: 10,
-  // backgroundColor: 'rgba(0,0,0,0.5)',
     padding: 8,
-  // borderRadius: 20,
+  },
+   editButton: {
+    position: 'absolute',
+    top: 40, // Adjust depending on your status bar height
+    right: 16,
+    zIndex: 10,
+    padding: 8,
   },
   sellername:{
     fontSize: 16,
     marginTop: 5,
-    color:'#6EEA8E',
+    color:'red',//#6EEA8E
     fontWeight:'bold'
+  },
+  actionSheetButton:{
+    padding: 10,
+    alignItems:'center'
+  },
+  actionSheetLabel:{
+    fontSize: 20
   }
 });
 

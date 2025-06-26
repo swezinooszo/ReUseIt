@@ -7,6 +7,10 @@ import Fontisto from '@expo/vector-icons/Fontisto';
 import api
  from '../utils/api';
 import styles from '../styles/chooseCategoryStyles';
+import ComputerTech from '../../assets/icons/computer.svg';
+import HomeAppliance from '../../assets/icons/homeappliance.svg';
+import Furniture from '../../assets/icons/furniture.svg';
+import Phone from '../../assets/icons/phone.svg';
 
 interface Category{
   _id:string;
@@ -82,14 +86,28 @@ const chooseCategory = () => {
         {mainCategories.map((cat) => (
                 <TouchableOpacity key={cat._id} onPress={() => { handleMainCategorySelect(cat)}}>
                 <View style={styles.categoryContainer}>
-                  <Fontisto name="tv" size={24} color="black" />
-                  <Text style={styles.label}>{cat.name}</Text>
+                   {/* Icon */}
+                   {cat._id === "684c8bf9e6ad394af4b0c889" ? (
+                    <HomeAppliance width={30} height={30} />
+                    ) :  cat._id === '684c88bde6ad394af4b0c867'? (// computer & tech
+                      <ComputerTech  width={30} height={30}></ComputerTech>
+                    ) :  cat._id === '684c8b02e6ad394af4b0c873' ? ( // mobile
+                      <Phone  width={30} height={30}></Phone>
+                    ) :( // furniture
+                      <Furniture  width={30} height={30}></Furniture>
+                    )
+                    }
+                   {/* Text + arrow */}
+                  <View style={styles.categorySubContainer}>
+                    <Text style={styles.label}>{cat.name}</Text>
+                    <Ionicons name="chevron-forward" size={20} color="gray" />
+                  </View>
                 </View>
-                  <View style={{height:1,width:'100%',backgroundColor:'grey'}}></View>
+                <View style={{height:1,width:'100%',backgroundColor:'#dcdcdc99'}}></View>
                 </TouchableOpacity>
-        ))}
-            
+        ))}     
        </View>
+
       <Modal visible={modalVisible} animationType="slide">
          <SafeAreaProvider>
             <SafeAreaView style={styles.safeAreacontainer}>
@@ -104,7 +122,7 @@ const chooseCategory = () => {
                             <View style={styles.categoryContainer}>
                             <Text style={styles.label}>{sub.name}</Text>
                             </View>
-                            <View style={{height:1,width:'100%',backgroundColor:'grey'}}></View>
+                            <View style={{height:1,width:'100%',backgroundColor:'#dcdcdc99'}}></View>
                         </TouchableOpacity>
                  
                     ))}

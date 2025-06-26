@@ -108,7 +108,8 @@ io.on('connection', (socket) => {
       message
     });
 
-    await Chat.findByIdAndUpdate(chatId, { lastMessage: message, updatedAt: new Date() });
+    //add current user id as lastMessageReadBy so that the message won't be bold (as unread) when current user open the chat list
+    await Chat.findByIdAndUpdate(chatId, { lastMessage: message, updatedAt: new Date(), lastMessageReadBy: [socket.userId], });
 
     io.to(chatId).emit('newMessage', {
       _id: msg._id,

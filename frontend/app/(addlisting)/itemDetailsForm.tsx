@@ -10,6 +10,7 @@ import { categoryFormFields } from '../lib/categoryFormFields';
 import CustomButton from "../components/CustomButton";
 import { GooglePlacesAutocomplete } from 'react-native-google-places-autocomplete';
 import 'react-native-get-random-values';
+import styles from "../styles/itemDetailsFormStyles";
 
 interface Category{
   _id:string;
@@ -60,6 +61,11 @@ const itemDetailsForm = () =>{
     
     const doneFillingForm = () => { //handleSubmit
         console.log('Submitting:', formData);
+         if (!isFormValid()) {
+            alert("Please fill in Title, Condition, Price, and Address before proceeding.");
+            return;
+        }
+
          // Navigate to review page
         router.push({
           pathname: '/(addlisting)/itemReviewForm',
@@ -70,6 +76,15 @@ const itemDetailsForm = () =>{
             subCategory,
           },
         });
+    };
+
+    const isFormValid = () => {
+    return (
+        formData.title?.trim().length > 0 &&
+        formData.condition?.trim().length > 0 &&
+        formData.price?.trim().length > 0 &&
+        formData.address?.trim().length > 0
+    );
     };
 
     return(
@@ -95,19 +110,23 @@ const itemDetailsForm = () =>{
                         />
 
                         <Text style={styles.label}>Condition</Text>
-                        {/* <TextInput
-                            style={styles.input}
-                            placeholder="Please describe your item condition"
-                            value={formData.condition || ''}
-                            onChangeText={(text) => handleChange('condition', text)}
-                        /> */}
-                        <TouchableOpacity
+                         <TouchableOpacity
+                            onPress={() => setConditionModalVisible(true)}
+                            >
+                            <View style={[styles.input,{flexDirection:'row', justifyContent: 'space-between',}]}>
+                                <Text style={{ fontSize:16,color: formData.condition ? '#000' : '#aaa' }}>
+                                    {formData.condition || 'Select condition'}
+                                </Text>
+                                  <Ionicons name="chevron-down" size={20} color="#666" />
+                            </View>
+                        </TouchableOpacity>
+                        {/* <TouchableOpacity
                             onPress={() => setConditionModalVisible(true)}
                             >
                             <Text style={[styles.input,{ color: formData.condition ? '#000' : '#aaa' }]}>
                                 {formData.condition || 'Select condition'}
                             </Text>
-                        </TouchableOpacity>
+                        </TouchableOpacity> */}
 
 
                         {/* Dynamic fields */}
@@ -117,12 +136,15 @@ const itemDetailsForm = () =>{
                                 <View  key={field.key}>
                                     <Text style={styles.label}>{field.label}</Text>
                                     <TouchableOpacity
-                                        // style={styles.selectInput}
                                         onPress={() => openSelectModal(field.key, field.options || [])}
                                         >
-                                        <Text style={[styles.input,{ color: formData[field.key] ? '#000' : '#aaa' }]}>
-                                        {formData[field.key] || `Select ${field.label}`}
-                                        </Text>
+                                        <View style={[styles.input,{flexDirection:'row', justifyContent: 'space-between',}]}>
+                                            {/* <Text style={[styles.input,{ color: formData[field.key] ? '#000' : '#aaa' }]}> */}
+                                             <Text style={{ fontSize:16,color: formData[field.key] ? '#000' : '#aaa' }}>
+                                                {formData[field.key] || `Select ${field.label}`}
+                                            </Text>
+                                             <Ionicons name="chevron-down" size={20} color="#666" />
+                                        </View>
                                     </TouchableOpacity>
                                 </View>
                             );
@@ -159,25 +181,7 @@ const itemDetailsForm = () =>{
                             </Text>
                         </TouchableOpacity>
 
-                        <CustomButton text="Next" height={40} onPress={doneFillingForm} borderRadius={5} ></CustomButton>
-
-                        {/* Select modal */}
-                        {/* <Modal visible={selectModal.visible}>
-                            <View style={styles.modalOverlay}>
-                            <View style={styles.modalContainer}>
-                                <FlatList
-                                data={selectModal.options}
-                                keyExtractor={(item, index) => index.toString()}
-                                renderItem={({ item }) => (
-                                    <TouchableOpacity onPress={() => handleOptionSelect(item)}>
-                                    <Text style={styles.modalOption}>{item}</Text>
-                                    </TouchableOpacity>
-                                )}
-                                />
-                                <Button title="Cancel" onPress={() => setSelectModal({ visible: false,  options: [],   fieldKey: '',})} />
-                            </View>
-                            </View>
-                        </Modal> */}
+                        <CustomButton text="Next" height={50} fontWeight="bold" onPress={doneFillingForm} borderRadius={5} backgroundColor="#5FCC7D" ></CustomButton>
 
                         {/* Options Modal */}
                         <Modal visible={selectModal.visible} animationType="slide">
@@ -279,6 +283,16 @@ const itemDetailsForm = () =>{
                                     listView: {
                                     backgroundColor: 'white',
                                     },
+                                     textInput: {
+                                       borderWidth: 1, 
+                                       borderColor: '#ccc', 
+                                       borderRadius: 5,
+                                       padding: 15, 
+                                       marginTop:10,
+                                       fontSize:16,
+                                       height:50,
+                                       backgroundColor:'#e5e5ea'
+                                    },
                                 }}
                                 // All other default props explicitly defined
                                 autoFillOnNotFound={false}
@@ -317,14 +331,16 @@ const itemDetailsForm = () =>{
                                 />
                             </View>
                               <CustomButton 
-                                    text="Confirm location" height={40}   
+                                    backgroundColor="#5FCC7D"
+                                    text="Confirm location" height={50} fontWeight="bold" 
                                     onPress={() => {
                                         handleChange('address', address);
                                         handleChange('longitude', longitude);
                                         handleChange('latitude', latitude);
                                         setAddressModalVisible(false);
                                     }} 
-                                    borderRadius={5} ></CustomButton>
+                                    borderRadius={5}
+                                    ></CustomButton>
                         </SafeAreaView>
                         </Modal>
 
@@ -336,53 +352,4 @@ const itemDetailsForm = () =>{
     )
 }
 
-const styles = StyleSheet.create({
-    container:{
-        flex:1,
-        padding:15,
-        backgroundColor:'white'
-    },
-    title: {
-        fontSize:20,
-        fontWeight:'bold',
-        marginTop:20
-    },
-    subContainer:{
-        flex:1,
-        marginTop:30
-    },
-    label: {
-        fontSize:16,
-        marginTop:10
-    },
-    input: {
-        borderWidth: 1, 
-        borderColor: '#ccc', 
-        borderRadius: 5,
-        padding: 15, 
-        marginTop:10,
-        fontSize:16,
-        height:50,
-        backgroundColor:'#e5e5ea'
-    },
-    selectInput: {
-        borderWidth: 1, borderColor: '#ccc', borderRadius: 8,
-        padding: 12, marginBottom: 12, justifyContent: 'center',
-    },
-    modalOverlay: {
-        flex: 1, backgroundColor: 'rgba(0,0,0,0.5)',
-        justifyContent: 'center', alignItems: 'center',
-    },
-     modalContainer:{
-        flex:1
-    },
-    optionsFlatContainer:{
-        marginTop:10,
-        padding:10,
-    },
-    modalOption: {
-        padding: 15, borderBottomWidth: 1, borderColor: '#eee',
-        fontSize: 16,
-    },
-})
 export default itemDetailsForm;

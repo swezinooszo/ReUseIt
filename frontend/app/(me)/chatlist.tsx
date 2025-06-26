@@ -8,6 +8,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import {jwtDecode} from 'jwt-decode';
 import styles from "../styles/chatListStyles";
 import AntDesign from '@expo/vector-icons/AntDesign';
+import { useFocusEffect } from '@react-navigation/native';
+import { useCallback } from 'react';
 
 interface User {
   _id: string;
@@ -29,6 +31,7 @@ interface Chat {
   buyerId: User;
   sellerId: User;
   lastMessage: string;
+  lastMessageReadBy: string[],
   updatedAt: string;
 }
 
@@ -65,28 +68,42 @@ const chatlist = () => {
   }, []);
 
     // retrive chat list based on userId
-    useEffect(() =>{
-      if(!userId) return
-      console.log(` chatlist userId ${userId}`)
-        api.get(`/chats/${userId}`)//683baea3c5b53f9905bd28fa
-        .then(res=> {
-            console.log(`chatlist data ${res.data}`)
-            setChats(res.data)
-        })
-        .catch(error=> {console.log(`get chat error ${error}`)})
+    useFocusEffect(
+      useCallback(() => {
+         let isActive = true;
+        const getChats = async () => {
+          try {
+            if (!userId || !isActive) return;
+            const res = await api.get(`/chats/${userId}`);
+            if (isActive) {
+              setChats(res.data);
+            }
+          } catch (error) {
+            console.log('Error fetching chats:', error);
+          }
+        };
 
-    },[userId])
+        getChats();
+        return () => {
+          isActive = false; // Cleanup
+        };
+      }, [userId])
+  );
+
 
     // renderChatItem
     const renderChatItem = ({ item }:  { item: Chat }) => {
     const otherUser = item.buyerId._id === userId ? item.sellerId : item.buyerId;
     const listing = item.listingId;
+    const isUnread = !item.lastMessageReadBy?.includes(userId);
     return (
       <TouchableOpacity
-        onPress={() => 
+        onPress={ async () => 
           {
+           // await markAsRead(item._id,userId)
             // add one more param sellerId to determin whether to show make offer button or not
-            router.navigate({ pathname: '/(me)/chat',params:{listingId:listing._id,receiverId: otherUser._id,receiverName:otherUser.username,receiverEmail:otherUser.email,currentUserId: userId,token:token,price:item.listingId.price,sellerId:item.sellerId._id}});
+            // pass chatIdParam:item._id and isUnread='true' to mark messag as read in chat page..
+            router.navigate({ pathname: '/(me)/chat',params:{listingId:listing._id,receiverId: otherUser._id,receiverName:otherUser.username,receiverEmail:otherUser.email,currentUserId: userId,token:token,price:item.listingId.price,sellerId:item.sellerId._id,chatIdParam:item._id,isUnread:isUnread.toString()}});
           }
         }
         style={{
@@ -98,14 +115,13 @@ const chatlist = () => {
       >
         {/* <Image source={{ uri: otherUser.avatar }} style={{ width: 40, height: 40, borderRadius: 20 }} /> */}
         <View style={styles.subViewContainer}>
-          <Text style={{fontSize:16}}>{otherUser.username}</Text>
-           <Text style={{fontSize:16, fontWeight: 'bold',marginTop:8 }}>{item.listingId.title}</Text>
-          <Text style={{ fontSize:14, color: '#888' ,marginTop:5}} numberOfLines={1} >{item.lastMessage}</Text>
-          <Text style={{ color: '#aaa', fontSize: 12 }}>
-            {new Date(item.updatedAt).toLocaleString()}
+          <Text style={{fontSize:14,color:'#888',fontWeight:'bold'}}>{otherUser.username}</Text>
+           <Text style={{fontSize:18, fontWeight: 'bold',marginTop:8 }}>{item.listingId.title}</Text>
+          <Text style={{ fontSize: 14, marginTop: 5, fontWeight: isUnread ? 'bold' : 'normal', color: isUnread ? '#000' : '#888',}} numberOfLines={1}
+            >
+            {item.lastMessage}
           </Text>
         </View>
-          {/* <Image source={{ uri: listing.image }} style={{ width: 50, height: 50, borderRadius: 5 }} /> */}
        </TouchableOpacity>
     );
   };

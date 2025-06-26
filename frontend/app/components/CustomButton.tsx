@@ -14,7 +14,7 @@ type Props = {
     flex?:number,
     borderWidth?:number,
     borderColor?:string,
-    isVisible?:boolean
+    isVisible?:boolean,
 }
 const CustomButton = ({onPress,text,height = 50,marginTop = 20,borderRadius=25,fontSize=18,backgroundColor='#388E3C'
     ,color='#fff',fontWeight='normal',width = '100%' ,flex,borderWidth=0,borderColor,isVisible=true}:Props) => {

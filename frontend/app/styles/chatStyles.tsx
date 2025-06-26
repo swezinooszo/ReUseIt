@@ -14,7 +14,8 @@ const chatStyles = StyleSheet.create({
     },
     chatContainer:{
         flex:1,
-        marginTop:20
+        marginTop:20,
+        marginBottom:40
     },
     subViewContainer :{
         flex:1
@@ -147,6 +148,11 @@ const chatStyles = StyleSheet.create({
         height:60,
         borderRadius:30,
     },
+    userIcon:{
+      alignItems:'center',
+      marginTop:50,
+      marginBottom:50
+    }
 })
 
 export default chatStyles;

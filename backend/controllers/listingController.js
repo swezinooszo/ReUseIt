@@ -146,7 +146,9 @@ const getListingsByQuery = asyncHandler(async (req,res) => {
         const type = req.query.type;
         console.log(`getListingsByQuery search: ${search}, Region: [${minLat}, ${maxLat}], [${minLng}, ${maxLng}]`);
 
-        const query = {};
+        const query = {
+            isVisibleToMarket: true
+        };
 
         if (search) {
         query.title = { $regex: search, $options: 'i' }; // case-insensitive search
@@ -235,6 +237,84 @@ const getSuggestions = asyncHandler(async (req,res) => {
     }
 })
 
+// @desc    Delete a listing
+// @route   DELETE /api/listings/:id
+// @access  Private
+const deleteListing = asyncHandler(async (req, res) => {
+    const id = req.params.id;
+
+    const listing = await Listing.findById(id);
+
+    if (!listing) {
+        res.status(404);
+        throw new Error('Listing not found');
+    }
+
+    await listing.deleteOne(); // or await Listing.findByIdAndDelete(id);
+
+    res.status(200).json({ message: 'Listing deleted successfully' });
+});
+
+// @desc    Update a Listing
+// @route   PUT /api/listings/:id
+// @access  Private
+const updateListing = asyncHandler(async (req, res) => {
+  const listingId = req.params.id;
+
+  // Find listing by ID
+  const listing = await Listing.findById(listingId);
+
+  if (!listing) {
+    res.status(404);
+    throw new Error('Listing not found');
+  }
+
+  // Extract fields from request body
+  const {
+    title,
+    price,
+    description,
+    condition,
+    sellerId,
+    address,
+    location,
+    categoryId,
+    subCategoryIds,
+    image,
+    dynamicFields,
+  } = req.body;
+
+  // Optional: Validate location if provided
+  if (location) {
+    if (
+      location.type !== 'Point' ||
+      !Array.isArray(location.coordinates) ||
+      location.coordinates.length !== 2
+    ) {
+      res.status(400);
+      throw new Error('Invalid location data');
+    }
+  }
+
+  // Update fields if provided
+  listing.title = title ?? listing.title;
+  listing.price = price ?? listing.price;
+  listing.description = description ?? listing.description;
+  listing.condition = condition ?? listing.condition;
+  listing.sellerId = sellerId ?? listing.sellerId;
+  listing.address = address ?? listing.address;
+  listing.location = location ?? listing.location;
+  listing.categoryId = categoryId ?? listing.categoryId;
+  listing.subCategoryIds = subCategoryIds ?? listing.subCategoryIds;
+  listing.image = image ?? listing.image;
+  listing.dynamicFields = dynamicFields ?? listing.dynamicFields;
+
+  // Save updated listing
+  const updatedListing = await listing.save();
+
+  res.status(200).json(updatedListing);
+});
+
 
 module.exports = {
     getListings,
@@ -242,5 +322,7 @@ module.exports = {
     getListingById,
     getListingsByQuery,
     getSuggestions,
-    getListingByUserId
+    getListingByUserId,
+    deleteListing,
+    updateListing
 }

@@ -6,6 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '@/context/AuthContext';
 import FontAwesome5 from '@expo/vector-icons/FontAwesome5';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import { showConfirmationDialog } from '../utils/chatUtils';
 
 export default function TabsLayout() {
   const colorScheme = useColorScheme();
@@ -19,12 +20,21 @@ export default function TabsLayout() {
 
   if (!isLoggedIn) {
     console.log(` isLogin ${isLoggedIn}`)
-    return <Redirect href="/signin" />;
+     return <Redirect href="/signin" />;
+    // return <Redirect href="/verifyotp" />;
   }
 
    const onLogout = () => {
     console.log('logout clicked')
-      logout();
+    showConfirmationDialog(
+        'Confirm log out',
+        'Are you sure you want to log out?',
+        () => {
+            logout();
+        },
+        () => {
+        }
+      )
     }
 
   return (

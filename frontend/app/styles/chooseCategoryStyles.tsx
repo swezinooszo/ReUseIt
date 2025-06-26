@@ -20,7 +20,7 @@ const chooseCategoryStyles = StyleSheet.create({
     categoryTitle: {
         fontSize:20,
         fontWeight:'bold',
-        color:'green',
+        color:'#5FCC7D',
         marginTop:30
     },
     mainCatScrollViewContainer:{
@@ -41,9 +41,18 @@ const chooseCategoryStyles = StyleSheet.create({
         flex:1,
         marginTop:10
     },
-    categoryContainer:{
-        flexDirection:'row',
-        padding:10
+    categoryContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingVertical: 10,
+        paddingHorizontal: 15,
+    },
+    categorySubContainer:{
+        flex: 1, 
+        flexDirection: 'row', 
+        justifyContent: 'space-between', 
+        alignItems: 'center', 
+        marginLeft: 10 
     },
     safeAreacontainer : {
       flex:1,

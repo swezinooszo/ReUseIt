@@ -43,6 +43,8 @@ interface checkOffer {
 const chat = () => {
 
    const {listingId='',receiverId='',receiverName='',receiverEmail='',currentUserId='',token='',price=0,sellerId=''} = useLocalSearchParams();
+
+   const {chatIdParam='',isUnread=''} = useLocalSearchParams();
    // console.log(`Chat screen listingId ${listingId} receiverId ${receiverId} currentUserId${currentUserId}  token${token}`)
     const [socket, setSocket] = useState<Socket | null>(null);
     const [chatId, setChatId] = useState(null);
@@ -59,10 +61,12 @@ const chat = () => {
     const [isReserved,setIsReserved] = useState<Boolean>(false)
     const [reserveTex,setReserveText] = useState('Reserve')
     const [reviewTex,setReviewText] = useState('Leave Review')
-
+    // flat list scroll to the end with animation
     const flatListRef = useRef<FlatList>(null);
-
-   
+    const [contentHeight, setContentHeight] = useState(0);
+    const [layoutHeight, setLayoutHeight] = useState(0);
+    // ********** add 'make offer' , 'accept offer', 'review' , 'reserve/unreserve' and 'sold' buttons
+    // based on user role (buyer and users)
     useEffect(()=>{
       if(!checkOffer) return
       
@@ -136,11 +140,11 @@ const chat = () => {
     };
 
     // auto scroll flatlist to see last message
-    useEffect(() => {
-    if (flatListRef.current && messages.length > 0) {
-      flatListRef.current.scrollToEnd({ animated: true });
-    }
-  }, [messages]);
+  //   useEffect(() => {
+  //   if (flatListRef.current && messages.length > 0) {
+  //     flatListRef.current.scrollToEnd({ animated: true });
+  //   }
+  // }, [messages]);
 
     // ************ chat initialised ************ //
     useEffect(() => {
@@ -175,10 +179,29 @@ const chat = () => {
     // ** check if existing offer.
     checkExistingOffer();
 
+     // ** to update new message as read
+     if(isUnread === 'true' && chatIdParam && currentUserId){
+       markAsRead();
+     }
+
     return () => {
       newSocket.disconnect();
     };
   }, []);
+
+    const onClose = () =>{
+      router.back();
+    }
+
+    // ************* mark as read *********** //
+    const markAsRead = async () => {
+    try {
+     console.log(`Chat markAsRead chatId ${chatIdParam} currentUserId ${currentUserId}`)
+      await api.put(`/chats/read/${chatIdParam}`, { userId: currentUserId });
+    } catch (error) {
+      console.log("Failed to mark chat as read", error);
+    }
+  };
 
    // ************* send chat *********** //
    const handleSend = () => {
@@ -189,13 +212,10 @@ const chat = () => {
     setInput('');
   };
 
-  const onClose = () =>{
-    router.back();
-  }
-
    // ** check if existing offer.
    const checkExistingOffer = async() => {
     const userId = sellerId !== currentUserId ? currentUserId : receiverId;//confirm it's buyerId when call api
+    console.log(`buyerId ${userId}  listingId${listingId}`)
       try{
        //console.log(`checkExistingOffer currentUserId ${currentUserId} listingId ${listingId}`)
         const res = await api.get(`/offers/check?buyerId=${userId}&listingId=${listingId}`)
@@ -331,25 +351,26 @@ const chat = () => {
     'Mark listing as Sold?',
     'You can not undo this action. This item will not be visible in the marketplace and buyers can no longer make offers for this listing',
     () => {
-       // ✅ OK pressed
-       console.log('Offer sent');
        soldListing();
     },
     () => {
-      // ❌ Cancel pressed
       console.log('Offer canceled');
     }
   );
   }
+
+   const onSellerDetails = () => {
+      router.push({pathname:'/(explore)/sellerDetails',params:{sellerId:sellerId}})
+    }
 
     return(
         <SafeAreaProvider>
            <KeyboardAvoidingView
             style={{ flex: 1 }}
             behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-            keyboardVerticalOffset={0} // adjust based on header height
+            //keyboardVerticalOffset={Platform.OS === 'ios' ? 64 : 0} // adjust based on header height
           >
-            <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+            {/* <TouchableWithoutFeedback onPress={Keyboard.dismiss}> */}
             <SafeAreaView style={styles.safeAreacontainer}>
                   <View style={styles.chatHeaderContainer}>
                     <View  style={styles.subViewContainer}>
@@ -402,14 +423,24 @@ const chat = () => {
                   <View style={styles.chatContainer}>
                       <FlatList
                         ListHeaderComponent={
-                          <View style={{alignItems:'center',marginTop:50,marginBottom:50}}>
+                          <TouchableOpacity style={styles.userIcon} onPress={onSellerDetails}>
                               <Image style={styles.image} source={require('../../assets/images/default_profile.jpg')} ></Image>
                               <Text style={styles.chatTitle} >
                                 {receiverName}
                             </Text>
-                          </View>
+                          </TouchableOpacity>
                         }
                         ref={flatListRef}
+                        onContentSizeChange={(w, h) => {
+                          setContentHeight(h);
+                          setTimeout(() => {
+                            const desiredOffset = Math.max(0, h - layoutHeight);
+                            flatListRef.current?.scrollToOffset({ offset: desiredOffset, animated: true });
+                          }, 500); // Delay ensures layout is complete
+                        }}
+                        // onContentSizeChange={() => { 
+                        //   flatListRef.current?.scrollToEnd({ animated: true });
+                        // }}
                         data={messages}
                         keyExtractor={(item) => item._id}
                         renderItem={({ item }) => {
@@ -447,7 +478,7 @@ const chat = () => {
                   </View>
 
             </SafeAreaView>
-            </TouchableWithoutFeedback>
+            {/* </TouchableWithoutFeedback> */}
           </KeyboardAvoidingView>
         </SafeAreaProvider>
     );

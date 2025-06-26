@@ -15,6 +15,7 @@ import api from '../utils/api';
 import { debounce,buildQueryUrl } from "../utils/searchResultUtils";
 import styles from '../styles/searchResultStyles';
 import { MaterialIcons} from "@expo/vector-icons";
+import CustomListItem from "../components/CustomListItem";
 
 interface GroupedCategories {
   mainCategory: Category;
@@ -66,7 +67,7 @@ const searchResult = () => {
   const [suggestions, setSuggestions] = useState<string[]>([]);
   {/* Region */}
   const [region, setRegion] = useState<Region>(DEFAULT_REGION);
-  const snapPoints = useMemo(()=>['25%','50%','90%'],[])
+  const snapPoints = useMemo(()=>[50,'50%','90%'],[])
 
   {/* Categories  */}
   const {categoryId,categoryName,categoryType}= useLocalSearchParams<{ categoryId: string,categoryName:string,categoryType:string }>();
@@ -76,12 +77,14 @@ const searchResult = () => {
   const [selectedCategoryName, setSelectedCategoryName] = useState(categoryName || '');
   const [selectedCategoryType, setSelectedCategoryType] = useState(categoryType || '');
  
+  const [selectedListing, setSelectedListing] = useState<Listing>();
+
   //rebuild debounced function when searchQuery changes
   const debouncedFetchListingsByRegion = useMemo(() =>
     debounce((region: Region) => {
       fetchListingsbyQuery({ isInitial: true, region });
     }, 500),
-  [searchQuery]);
+  [searchQuery,selectedCategoryId]);
 
     useEffect(() => {
     return () => {
@@ -224,27 +227,16 @@ const searchResult = () => {
       <View>
         {/* source={{ uri: item.image[0] }} */}
         <Image  style={styles.image} source={ item.image[0] ? {uri: item.image[0]} : require('../../assets/images/default_image.png')} />
-        {/* <View style={styles.descriptionRow}>
-          <Text style={styles.description} numberOfLines={2}>{item.title}</Text>
-          <TouchableOpacity>
-            <Ionicons name="chatbubble-ellipses-outline" size={16} color="black" />
-          </TouchableOpacity>
-        </View>
-        <Text style={styles.price}>${item.price}</Text>
-        <Text style={styles.condition}>{item.condition}</Text> */}
-
          <View style={styles.textContainer}>
-          <View>
+          <View style={{flex:1,}}>
             <Text style={styles.title} numberOfLines={2}>{item.title}</Text>
             <Text style={styles.price}>${item.price}</Text>
             <Text style={styles.condition}>{item.condition}</Text>
           </View>
-          <TouchableOpacity>
+          <TouchableOpacity style={{width:24}}>
             <MaterialIcons name="favorite-border" size={24} color="black" />
           </TouchableOpacity>
         </View>
-
-
       </View>
       </TouchableOpacity>
     </View>
@@ -264,15 +256,10 @@ const searchResult = () => {
                 <SafeAreaProvider>
                 <SafeAreaView style={styles.safeAreacontainer}>
                   <View style={styles.categoryHeaderContainer}>
-                      {/* <TouchableOpacity style={styles.iconWrapper} onPress={onCancelSelectingCategory}>
-                        <Ionicons name="close-sharp" size={24} color="black" />
-                      </TouchableOpacity> */}
+                     
                       <View style={styles.titleWrapper}>
                       <Text style={styles.categoryTitle}>Categories</Text>
                       </View>
-                      {/* <View style={styles.iconWrapper}>
-
-                      </View> */}
                   </View>
                   <View style={{ padding: 20,flex:1 }}>
                     <FlatList
@@ -291,8 +278,8 @@ const searchResult = () => {
 
                           {/* Children */}
                           {item.subCategories.map(sub => (
-                            <View style={{paddingLeft:10}}>
-                            <TouchableHighlight style={[styles.categoriesTouchableHighlight,{marginTop:5}]} key={sub._id} onPress={() => toggleCategory(sub._id,sub.name,'sub')} underlayColor="#ddd">
+                            <View  key={sub._id} style={{paddingLeft:10}}>
+                            <TouchableHighlight style={[styles.categoriesTouchableHighlight,{marginTop:5}]} onPress={() => toggleCategory(sub._id,sub.name,'sub')} underlayColor="#ddd">
                               <View style={[styles.categoriesView,{backgroundColor: selectedCategoryId === sub._id ? '#ACE1AF' : '#E5E4E2'}]}>
                                 <Text style={styles.subcategoryText}>
                                   {sub.name}
@@ -386,7 +373,8 @@ const searchResult = () => {
                   onRegionChangeComplete={(newRegion) => {
                    setRegion(newRegion);
                    debouncedFetchListingsByRegion(newRegion);
-                }}
+                   
+                 }}
                   >
 
                     {
@@ -398,9 +386,14 @@ const searchResult = () => {
                               latitude: listing?.location?.coordinates?.[1] ?? 0,
                               longitude: listing?.location?.coordinates?.[0] ?? 0
                             }}
-                            title={listing.title} 
-                              description={listing.address} 
+                            // title={listing.title} 
+                            // description={listing.address} 
+                             // if press the listing which is already shown/selected, then dismiss.. only show listing which is not previously shown
+                              onPress={() => { (selectedListing && selectedListing._id === listing._id) ? setSelectedListing(undefined) : setSelectedListing(listing)}}
                           >
+                            <View style={styles.priceView}>
+                              <Text style={{fontWeight:'bold'}}>$ {listing.price} CAD</Text>
+                            </View>
                           </Marker>
                         ))
                       ) : (
@@ -408,15 +401,21 @@ const searchResult = () => {
                       )
                     }
                   </MapView>
+                  {/* Display overlay component */}
+                  {
+                    listings.length > 0 && selectedListing && (
+                       <CustomListItem listing={selectedListing}></CustomListItem>
+                    )
+                  }
+
 
                   {/* BottomSheet */}
                   <BottomSheet
-                    index={1}
+                    index={0}
                     snapPoints={snapPoints}
                     // ref={bottomSheetRef}
                     // onChange={handleSheetChanges}
                     >
-                    {/* <BottomSheetView style={styles.contentContainer}> */}
                       <Text style={styles.totalListingTitle}>{totalListings} listings</Text>
                       <BottomSheetFlatList
                         data={listings}
@@ -452,94 +451,3 @@ const searchResult = () => {
 }
 
 export default searchResult;
-
-
-  //   // fetch listing based on region (when user move/zoom in)
-  //   const fetchListingsbyRegion = async (region?: Region) => {
-  //      console.log(`fetchListingsbyRegion`);
-  //       if (loadingMore || !hasMore) return;
-  //       setLoadingMore(true);
-
-  //       // set page as 1 every map region change.
-  //       const fixed_page = 1;
-  //       try {
-  //         let url = `/listings/query?page=${fixed_page}&limit=4&search=${searchQuery}`;
-
-  //         if (region) {
-  //           const { latitude, longitude, latitudeDelta, longitudeDelta } = region;
-  //           const minLat = latitude - latitudeDelta / 2;
-  //           const maxLat = latitude + latitudeDelta / 2;
-  //           const minLng = longitude - longitudeDelta / 2;
-  //           const maxLng = longitude + longitudeDelta / 2;
-
-  //           url += `&minLat=${minLat}&maxLat=${maxLat}&minLng=${minLng}&maxLng=${maxLng}`;
-  //         }
-
-  //         const response = await api.get(url);
-  //         const newItems = response.data;
-
-  //         console.log(`fetchListingsbyRegion newItems length: ${newItems.length}`);
-  //         // if (newItems.length === 0) {
-  //         //   setHasMore(false);
-  //         // } else {
-  //         //  setListings(newItems);//always set new data for new region change
-  //        //   setPage(2);//for scroll through next page.
-  //        // }
-  //        if (newItems.length !== 0) {
-  //           setListings(newItems);
-  //        }else{
-  //          setListings([]);
-  //        }
-  //         setPage(2);
-  //       } catch (error) {
-  //         console.error('Failed to fetch listings:', error);
-  //       } finally {
-  //         setLoadingMore(false);
-  //       }
-  // };
-
-  // const fetchListingsbyQuery = async () => {
-  //   console.log(`fetchListingsbyQuery page ${page} searchQuery ${searchQuery}`)
-  //   if (loadingMore || !hasMore) return;
-  //   setLoadingMore(true);
-  //   try {
-  //     let url = `/listings/query?page=${page}&limit=10&search=${searchQuery}`;
-  //     if (region) {
-  //         const { latitude, longitude, latitudeDelta, longitudeDelta } = region;
-  //         const minLat = latitude - latitudeDelta / 2;
-  //         const maxLat = latitude + latitudeDelta / 2;
-  //         const minLng = longitude - longitudeDelta / 2;
-  //         const maxLng = longitude + longitudeDelta / 2;
-
-  //         url += `&minLat=${minLat}&maxLat=${maxLat}&minLng=${minLng}&maxLng=${maxLng}`;
-  //     }
-
-  //     const response =  api.get(url)
-  //     const newlistings = (await response).data;
-  //     console.log(`newlistings ${newlistings} ${newlistings.length}`)
-  //     //  if (newItems.length === 0) {
-  //     //   setHasMore(false);
-  //     // } else {
-  //     //   setListings(prev => [...prev, ...newItems]);
-  //     //   setPage(prev => prev + 1);
-  //     // }
-      
-  //     if ( page != 1 && newlistings.length === 0) {
-  //           setHasMore(false);
-  //     } else {
-  //       setListings(prev => [...prev, ...newlistings]);
-  //       setPage(prev => prev + 1);
-  //     }
-  //   } catch (error) {
-  //     console.error('Failed to fetch listings:', error);
-  //   } finally {
-  //     setLoadingMore(false);
-  //   }
-  // }
-
-  // useEffect(() => {
-  //   console.log(`searchResult => useEffect : page ${page} ,searchQuery => ${searchQuery}`)
-  //   if (page === 1 && listings.length == 0 && searchQuery) {
-  //     fetchListingsbyQuery();
-  //   }
-  // }, [page, listings, searchQuery]);
