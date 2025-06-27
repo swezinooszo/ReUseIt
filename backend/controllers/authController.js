@@ -70,44 +70,6 @@ const sendEmail = async (email, otp) => {
     await transporter.sendMail(mailOptions);
 };
 
-
-// const sendOTP = asyncHandler (async (req, res) => {
-//   const {username,email,password} = req.body
-//   // const { email } = req.body.email;
-//   // const { password } = req.body.password;
-
-//   console.log(`sendOTP username ${username}   email ${email}  password${password}`);
-//   const existingUser = await User.findOne({ email });
-//   if (existingUser) {
-//     return res.status(400).json({ message: 'Email already registered' });
-//   }
-
-//   const hashedPassword = await bcrypt.hash(password, 10);
-
-//   const otp = Math.floor(100000 + Math.random() * 900000).toString();
-//   const otpExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 mins
-
-//   const user = await User.create({ username, email, password: hashedPassword, otp, otpExpires });
-
-//   // Send email
-//     const transporter = nodemailer.createTransport({
-//         service: 'gmail',
-//         auth: {
-//             user: 'grocerysmartteam@gmail.com',// process.env.EMAIL_USER
-//             pass: 'iewhjomvbbvfmiwe', // Your email password (or app-specific password)
-//         },
-//     });
-
-
-//     await transporter.sendMail({
-//         to: email,
-//         subject: 'Your OTP Code',
-//         text: `Your OTP is ${otp}. It will expire in 10 minutes.`
-//     });
-
-//   res.json({ message: 'OTP sent to email' });
-// });
-
 const verifyOTP = asyncHandler(async (req, res) => {
   const { email, otp } = req.body;
 

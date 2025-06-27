@@ -120,13 +120,6 @@ const itemDetailsForm = () =>{
                                   <Ionicons name="chevron-down" size={20} color="#666" />
                             </View>
                         </TouchableOpacity>
-                        {/* <TouchableOpacity
-                            onPress={() => setConditionModalVisible(true)}
-                            >
-                            <Text style={[styles.input,{ color: formData.condition ? '#000' : '#aaa' }]}>
-                                {formData.condition || 'Select condition'}
-                            </Text>
-                        </TouchableOpacity> */}
 
 
                         {/* Dynamic fields */}

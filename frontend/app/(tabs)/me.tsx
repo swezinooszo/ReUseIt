@@ -74,19 +74,6 @@ const me = () => {
             getUserProfile();
         }, [])
     );
-    // useEffect(()=>{
-    //     const getUserProfile = async () => {
-    //         try {
-    //             const response = await api.get('/users/me');
-    //             const user = response.data;
-    //             setUser(user);
-    //             console.log('me User profile:', user);
-    //         } catch (error) {
-    //             console.error('Failed to fetch user profile:', error);
-    //         }
-    //     }
-    //     getUserProfile();
-    // },[])
 
     const renderItem = ({ item }:{item:Listing}) => (
     <View style={styles.card}>

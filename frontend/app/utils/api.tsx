@@ -2,6 +2,7 @@ import axios from 'axios';
 import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { API_BASE_URL } from '../../config/config';
 
 // android simulator and ios physic device need mac's local ip addreess for backend api url
 // while ios simulator just work with localhost
@@ -9,7 +10,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
         const URL = `http://${LOCAL_IP}:8000/api` //Platform.OS === 'android' ? `http://${LOCAL_IP}:8000/api` : `http://localhost:8000/api`;
 
 const api = axios.create({
-  baseURL: URL,//'http://localhost:8000/api',
+  baseURL: API_BASE_URL//URL,
 });
 
 api.interceptors.request.use(async (config) => {
