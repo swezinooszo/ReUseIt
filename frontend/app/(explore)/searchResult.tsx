@@ -16,6 +16,7 @@ import { debounce,buildQueryUrl } from "../utils/searchResultUtils";
 import styles from '../styles/searchResultStyles';
 import { MaterialIcons} from "@expo/vector-icons";
 import CustomListItem from "../components/CustomListItem";
+import * as Location from 'expo-location';
 
 interface GroupedCategories {
   mainCategory: Category;
@@ -86,7 +87,7 @@ const searchResult = () => {
     }, 500),
   [searchQuery,selectedCategoryId]);
 
-    useEffect(() => {
+  useEffect(() => {
     return () => {
       debouncedFetchListingsByRegion.cancel?.(); 
     };
@@ -209,15 +210,48 @@ const searchResult = () => {
   
   useEffect(() => {
     const fetchCategories = async () =>{
+       console.log('fetchCategories check');
       try{
         const res = await api.get('/categories/grouped')
+          console.log(`fetchCategories check response ${res.data.message}` );
         setGroupedCategories(res.data)
       } catch (err) {
         console.log('Error fetching categories:', err);
       }
     }
     fetchCategories();
+
+   // getUserLocation();
   }, []);
+
+  // getUserLocation
+  // const getUserLocation = async () => {
+  //   try {
+  //     // Request permission
+  //     const { status } = await Location.requestForegroundPermissionsAsync();
+  //     if (status !== 'granted') {
+  //       console.log('Permission to access location was denied');
+  //       return;
+  //     }
+
+  //     // Get location
+  //     const location = await Location.getCurrentPositionAsync({});
+  //     const { latitude, longitude } = location.coords;
+
+  //     // Update region state
+  //     const userRegion = {
+  //       latitude,
+  //       longitude,
+  //       latitudeDelta: 0.05,
+  //       longitudeDelta: 0.05,
+  //     };
+  //     setRegion(userRegion);
+  //     debouncedFetchListingsByRegion(userRegion); // Fetch listings around user's current location
+  //   } catch (error) {
+  //     console.error('Error getting user location:', error);
+  //   }
+  // };
+
 
     const renderItem = ({ item }:{item:Listing}) => (
     <View style={styles.card}>
@@ -225,7 +259,6 @@ const searchResult = () => {
             router.push({pathname:'/(explore)/listingDetails',params:{listingId:item._id}})
       }}>
       <View>
-        {/* source={{ uri: item.image[0] }} */}
         <Image  style={styles.image} source={ item.image[0] ? {uri: item.image[0]} : require('../../assets/images/default_image.png')} />
          <View style={styles.textContainer}>
           <View style={{flex:1,}}>
@@ -362,15 +395,15 @@ const searchResult = () => {
             <GestureHandlerRootView style={styles.mapContainer}>
                 <MapView 
                   style={styles.map}
-                  initialRegion={{
-                      latitude: 50.4452,  // default to Regina
-                      longitude: -104.6189,
-                      latitudeDelta: 0.05,
-                      longitudeDelta: 0.05,
-                  }}
-                  region={region}
+                  // initialRegion={{
+                  //     latitude: 50.4452,  // default to Regina
+                  //     longitude: -104.6189,
+                  //     latitudeDelta: 0.05,
+                  //     longitudeDelta: 0.05,
+                  // }}
+                  region={region}//map will change based on user gesture
                  //onRegionChangeComplete={setRegion} 
-                  onRegionChangeComplete={(newRegion) => {
+                  onRegionChangeComplete={(newRegion) => {//is triggered when the map has finished moving or zooming and get the region to show on map
                    setRegion(newRegion);
                    debouncedFetchListingsByRegion(newRegion);
                    

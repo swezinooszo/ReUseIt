@@ -1,4 +1,4 @@
-import { Text, View,TextInput, FlatList, StyleSheet,Image,TouchableOpacity,ActivityIndicator,Dimensions,Modal} from "react-native";
+import { Text, View,KeyboardAvoidingView,Platform, FlatList, StyleSheet,Image,TouchableOpacity,ActivityIndicator,Dimensions,Modal} from "react-native";
 import { useState,useEffect,useRef } from "react";
 import { useRouter } from "expo-router";
 import {SafeAreaView, SafeAreaProvider} from 'react-native-safe-area-context';
@@ -8,15 +8,14 @@ import CustomTextInputSearchIcon from "../components/CustomTextInputSearchIcon";
 import CustomTextInputSearchIconEditable from "../components/CustomTextInputSearchIconEditable";
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import styles from "../styles/indexStyles";
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import FontAwesome6 from '@expo/vector-icons/FontAwesome6';
 import { useColorScheme } from 'react-native';
-import { Colors } from '../constants/Color';
 import { RefreshControl } from 'react-native';
 import ComputerTech from '../../assets/icons/computer.svg';
 import HomeAppliance from '../../assets/icons/homeappliance.svg';
 import Furniture from '../../assets/icons/furniture.svg';
 import Phone from '../../assets/icons/phone.svg';
+
+import { useNotification } from "@/context/NotificationContext";
 
 interface Category {
     _id: string;
@@ -33,6 +32,11 @@ interface Listing {
 }
 
 export default function Index() {
+  const { notification, expoPushToken, error } = useNotification();
+  if (error) {
+    return <Text>Error: {error.message}</Text>;
+  }
+
   const colorScheme = useColorScheme(); // returns 'light' or 'dark'
   const router = useRouter();
 
@@ -193,6 +197,13 @@ export default function Index() {
     router.push({ pathname: '/searchResult', params: { categoryId: id,categoryName:name,categoryType:'main' } });
   };
 
+  // go to add new lisitng
+  const listTheItem = () =>{
+    console.log('list the item clicked')
+    setModalVisible(false)
+    router.replace('/(tabs)/addListing')
+  }
+
   return (
     <SafeAreaProvider>
       <SafeAreaView style={styles.safeAreacontainer}>
@@ -204,32 +215,88 @@ export default function Index() {
                   onRequestClose={() => setModalVisible(false)}
               >
                  <SafeAreaProvider>
-                <SafeAreaView style={styles.safeAreacontainer}>
-                  <View style={styles.modalContainer}>
-                    <View style={{flex:0.5,height:40,alignItems: 'center',justifyContent:'center'}}>
-                    </View>
-                    <View style={{flex:4,height:40}}>
-                        <CustomTextInputSearchIconEditable value={modalQuery} onChangeText={setModalQuery}  onSubmitEditing={() => callSearchResultPageQueryString(modalQuery)}  placeholder="what you are looking for?"></CustomTextInputSearchIconEditable>
-                    </View>
-                    <View style={{flex:1,height:40,alignItems: 'center',justifyContent:'center'}}>
-                        <TouchableOpacity onPress={() => setModalVisible(false)}><Text>Cancel</Text></TouchableOpacity>
-                    </View>
-                  </View>
-                  <View style={styles.modalListContainer}>
-                      <FlatList
-                        data={suggestions}
-                        keyExtractor={(item, index) => `${item}-${index}`}
-                        renderItem={({ item }) => (
-                          <TouchableOpacity
-                            onPress={() => callSearchResultPageQueryString(item)}
-                            style={styles.suggestionItem}
-                          >
-                            <Text>{item}</Text>
-                          </TouchableOpacity>
-                        )}
-                      />
-                  </View>
-                </SafeAreaView>
+                  <KeyboardAvoidingView
+                      style={{ flex: 1 }}
+                      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                      //keyboardVerticalOffset={Platform.OS === 'ios' ? 64 : 0} // adjust based on header height
+                      >
+                    <SafeAreaView style={styles.safeAreacontainer}>
+                      <View style={styles.modalContainer}>
+                        <View style={{flex:0.5,height:40,alignItems: 'center',justifyContent:'center'}}>
+                        </View>
+                        <View style={{flex:4,height:40}}>
+                            <CustomTextInputSearchIconEditable value={modalQuery} onChangeText={setModalQuery}  onSubmitEditing={() => callSearchResultPageQueryString(modalQuery)}  placeholder="what you are looking for?"></CustomTextInputSearchIconEditable>
+                        </View>
+                        <View style={{flex:1,height:40,alignItems: 'center',justifyContent:'center'}}>
+                            <TouchableOpacity onPress={() => setModalVisible(false)}><Text>Cancel</Text></TouchableOpacity>
+                        </View>
+                      </View>
+                      <View style={styles.modalListContainer}>
+                       
+                          {/* {
+                            suggestions.length > 0 ?
+                             <View style={{height:40}}>
+                               <CustomText name="There are available to buy..." color="green"></CustomText>
+                            </View> 
+                            : <></>
+                          } */}
+                     
+                          <FlatList
+                            data={suggestions}
+                            keyExtractor={(item, index) => `${item}-${index}`}
+                             // Show this above the list
+                              // ListHeaderComponent={
+                              //   suggestions.length > 0 ? (
+                              //     <View style={{ alignItems:'center' }}>
+                              //       <CustomText name="There are items available to buy..." color="green" marginBottom={20} />
+                              //     </View>
+                              //   ) : null
+                              // }
+                            renderItem={({ item }) => (
+                              <TouchableOpacity
+                                onPress={() => callSearchResultPageQueryString(item)}
+                                style={styles.suggestionItem}
+                              >
+                                <Text>{item}</Text>
+                              </TouchableOpacity>
+                            )}
+                            // Show this below the list
+                            // ListFooterComponent={
+                            //   suggestions.length > 0 ? (
+                            //     <View style={{alignItems: 'center',justifyContent:'center', marginBottom:50}}>
+                            //       <CustomText
+                            //         name="List your item to sell!"
+                            //         color="green"
+                            //          marginTop={30}
+                            //       />
+                            //       <CustomButton
+                            //         text="Add Listing"
+                            //         height={40}
+                            //         width={200}
+                            //         fontWeight="bold"
+                            //         onPress={listTheItem}
+                            //         borderRadius={5}
+                            //         backgroundColor="#5FCC7D"
+                            //         marginTop={20}
+                            //       />
+                            //     </View>
+                            //   ) : null
+                            // }
+                          />
+
+                 
+                          {/* {
+                            suggestions.length > 0 ?
+                                <View style={{height:80,}}>
+                                 <CustomText name="List your item to sell!" color="green" fontSize={16}></CustomText> 
+                                 <CustomButton text=" Add Listing" height={40} fontWeight="bold" onPress={listTheItem} borderRadius={5} backgroundColor="#5FCC7D" ></CustomButton>
+                                </View>
+                               : <></>
+                          } */}
+                     
+                      </View>
+                    </SafeAreaView>
+                  </KeyboardAvoidingView>
                 </SafeAreaProvider>
             </Modal>
             {/* Modal Search  end */}

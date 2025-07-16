@@ -10,8 +10,14 @@ import * as SecureStore from 'expo-secure-store';
 import api from './utils/api';
 import LottieView from 'lottie-react-native';
 import axios from 'axios';
+import { useNotification } from "@/context/NotificationContext";
 
 const signin =  () => {
+    const { notification, expoPushToken, error } = useNotification();
+    if (error) {
+        return <Text>Error: {error.message}</Text>;
+    }
+
     const { login } = useAuth();
 
     const [email,setEmail] = useState('');
@@ -95,6 +101,14 @@ const signin =  () => {
                 </TouchableOpacity>
                </View>
 
+
+                <View>
+                    <Text>{expoPushToken}</Text>
+                    <Text>{notification?.request.content.title}</Text>
+                    <Text>
+                    {JSON.stringify(notification?.request.content.data, null, 2)}
+                    </Text>
+                </View>
                  {/* <CustomButton onPress={onNavigateSignUp} text="Here to Sign Up" fontWeight="bold" borderRadius={8}/> */}
 
 

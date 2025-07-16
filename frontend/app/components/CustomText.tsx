@@ -7,11 +7,12 @@ type Props = {
     flex?:number,
     color?:string,
     backgroundColor?:string,
-    marginTop?:number
+    marginTop?:number,
+    marginBottom?:number
 }
-const CustomText = ({name,fontWeight = 'normal', fontSize = 20,flex=1,color,backgroundColor,marginTop=0}:Props) =>{
+const CustomText = ({name,fontWeight = 'normal', fontSize = 20,flex=1,color,backgroundColor,marginTop=0,marginBottom=0}:Props) =>{
     return(
-        <Text style={{fontSize,fontWeight,flex,color,backgroundColor,marginTop}}>
+        <Text style={{fontSize,fontWeight,flex,color,backgroundColor,marginTop,marginBottom}}>
                 {name}
         </Text>
     )

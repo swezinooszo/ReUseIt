@@ -100,9 +100,6 @@ const chatlist = () => {
       <TouchableOpacity
         onPress={ async () => 
           {
-           // await markAsRead(item._id,userId)
-            // add one more param sellerId to determin whether to show make offer button or not
-            // pass chatIdParam:item._id and isUnread='true' to mark messag as read in chat page..
             router.navigate({ pathname: '/(me)/chat',params:{listingId:listing._id,receiverId: otherUser._id,receiverName:otherUser.username,receiverEmail:otherUser.email,currentUserId: userId,token:token,price:item.listingId.price,sellerId:item.sellerId._id,chatIdParam:item._id,isUnread:isUnread.toString()}});
           }
         }
@@ -113,7 +110,6 @@ const chatlist = () => {
           borderBottomColor: '#eee'
         }}
       >
-        {/* <Image source={{ uri: otherUser.avatar }} style={{ width: 40, height: 40, borderRadius: 20 }} /> */}
         <View style={styles.subViewContainer}>
           <Text style={{fontSize:14,color:'#888',fontWeight:'bold'}}>{otherUser.username}</Text>
            <Text style={{fontSize:18, fontWeight: 'bold',marginTop:8 }}>{item.listingId.title}</Text>

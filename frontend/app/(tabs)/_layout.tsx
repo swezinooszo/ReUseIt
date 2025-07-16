@@ -8,6 +8,7 @@ import FontAwesome5 from '@expo/vector-icons/FontAwesome5';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { showConfirmationDialog } from '../utils/chatUtils';
 
+
 export default function TabsLayout() {
   const colorScheme = useColorScheme();
   const { isLoggedIn,loading,logout } = useAuth();

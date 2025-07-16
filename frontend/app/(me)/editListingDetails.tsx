@@ -11,17 +11,11 @@ import {
   SafeAreaView,Alert,
 } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
-import { useRoute } from '@react-navigation/native';
 import api from '../utils/api';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import {jwtDecode} from 'jwt-decode';
 import styles from '../styles/listingDetailsStyles';
 import { Ionicons } from '@expo/vector-icons';
-import { getTimeSincePosted } from '../utils/listingDetailsUtils';
-import { MaterialIcons } from '@expo/vector-icons';
 import Entypo from '@expo/vector-icons/Entypo';
 import ActionSheet, { SheetManager }  from "react-native-actions-sheet";
-import { Button } from '@react-navigation/elements';
 import ListingDetailsComponent from '../components/ListingDetailsComponent';
 import { showConfirmationDialog,showAlertDialog } from '../utils/chatUtils';
 
