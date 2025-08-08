@@ -1,3 +1,18 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import {jwtDecode} from 'jwt-decode';
+
+interface User {
+  _id: string;
+  email: string;
+  username: string;
+  profileImage:string;
+}
+
+export interface MyJwtPayload {
+  id: string;
+  // add other fields if needed
+}
+
 export const getTimeSincePosted = (createdAt: string): string => {
   const now = new Date();
   const postedDate = new Date(createdAt);
@@ -23,4 +38,34 @@ export const getTimeSincePosted = (createdAt: string): string => {
   } else {
     return 'Just now';
   }
+};
+
+export const getTokenAndUserId = async (): Promise<{ token: string | null, userId: string | null,user:User | null }> => {
+  try {
+    const token = await AsyncStorage.getItem('userToken');
+    const storedUser = await AsyncStorage.getItem('user');
+
+    let parsedUser: User | null = null;
+    if (storedUser) {
+      parsedUser = JSON.parse(storedUser);
+      console.log('Loaded user from storage:', parsedUser);
+    }
+
+    if (token) {
+      const decoded = jwtDecode<MyJwtPayload>(token);
+      return {
+        token,
+        userId: decoded.id,
+        user:parsedUser
+      };
+    }
+  } catch (error) {
+    console.error("Error decoding token:", error);
+  }
+
+  return {
+    token: null,
+    userId: null,
+    user: null,
+  };
 };

@@ -20,15 +20,13 @@ import { Ionicons } from '@expo/vector-icons';
 import { getTimeSincePosted } from '../utils/listingDetailsUtils';
 import { MaterialIcons } from '@expo/vector-icons';
 import ListingDetailsComponent from '../components/ListingDetailsComponent';
-
-// const screenHeight = Dimensions.get('window').height;
-const screenWidth = Dimensions.get('window').width;
-
+import { getTokenAndUserId } from '../utils/listingDetailsUtils'; 
 
 interface User {
   _id: string;
   username: string;
   email: string;
+  profileImage:string;
 }
 
 interface Listing {
@@ -44,6 +42,16 @@ interface Listing {
   createdAt:string;
 }
 
+interface Chat {
+  _id: string;
+  listingId: Listing;
+  buyerId: User;
+  sellerId: User;
+  lastMessage: string;
+  lastMessageReadBy: string[],
+  updatedAt: string;
+}
+
 type MyJwtPayload = {
   id: string; // or userId: string;
 };
@@ -51,28 +59,19 @@ const ListingDetails = () => {
 
     const { listingId } = useLocalSearchParams();
     const [listing, setListing] = useState<Listing | null>();
+    const [chat, setChat] = useState<Listing | null>();
     const [userId, setUserId] = useState('');
     const [token, setToken] = useState('null');
+    const [user,setUser] = useState<User | null>();
     const [viewVisible, setViewVisible] = useState(false);
     // const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
     useEffect(() => {
       const loadToken = async () => {
-        console.log("listingDetails Page")
-        const storedToken = await AsyncStorage.getItem('userToken');
-       // console.log(`storedToken ${storedToken}`)
-        if (storedToken) {
-          setToken(storedToken);
-          try {
-            const decoded = jwtDecode<MyJwtPayload>(storedToken);
-           // console.log("Decoded JWT:", decoded.id);
-
-            // Assuming your token payload includes "id" or "userId"
-            setUserId(decoded.id);
-          } catch (error) {
-            console.error("Error decoding token:", error);
-          }
-        }
+          const { token, userId, user } = await getTokenAndUserId();
+          if(token) setToken(token);
+          if(userId) setUserId(userId)
+          if(user) setUser(user)
       };
       loadToken();
     }, []);
@@ -91,45 +90,22 @@ const ListingDetails = () => {
     //retrieve listing details based on id
     useEffect(() => {
         api.get(`/listings/${listingId}`)
-        .then(res => setListing(res.data))
+        .then(
+          res => {
+            setListing(res.data.listing)
+            setChat(res.data.chat)
+          }//res => setListing(res.data)
+        )
         .catch(err => console.error(err));
     }, [listingId]);
-
-  //   const renderDots = () => {
-  //   return (
-  //     <View style={styles.dotsContainer}>
-  //       {listing?.image.map((_, index) => (
-  //         <View
-  //           key={index}
-  //           style={[
-  //             styles.dot,
-  //             index === currentImageIndex ? styles.activeDot : null,
-  //           ]}
-  //         />
-  //       ))}
-  //     </View>
-  //   );
-  // };
-
-  // const onScroll = (event: any) => {
-  //   const index = Math.round(
-  //     event.nativeEvent.contentOffset.x / screenWidth
-  //   );
-  //   setCurrentImageIndex(index);
-  // };
-
-
-  // const renderImage = ({ item} :{item:string}) => (
-  //   <Image source={{ uri: item }} style={styles.image} />
-  // );
 
   const onClose = () =>{
     router.back();
   }
 
-  const onSellerDetails = () => {
-    router.push({pathname:'/(explore)/sellerDetails',params:{sellerId:listing?.sellerId._id}})
-  }
+  // const onSellerDetails = () => {
+  //   router.push({pathname:'/(explore)/sellerDetails',params:{sellerId:listing?.sellerId._id}})
+  // }
 
   return (
     <View style={styles.safe}>
@@ -141,62 +117,9 @@ const ListingDetails = () => {
 
         {/* Scrollable content */}
          { listing && (
-            <ListingDetailsComponent listing={listing}></ListingDetailsComponent>
+            <ListingDetailsComponent listing={listing} userId={userId}></ListingDetailsComponent>
         )
         }
-        {/* <ScrollView style={styles.scrollViewContainer}>
-            <FlatList
-            data={listing?.image}
-            horizontal
-            pagingEnabled
-            showsHorizontalScrollIndicator={false}
-            renderItem={renderImage}
-            keyExtractor={(item, index) => index.toString()}
-            style={styles.imageList}
-            onScroll={onScroll}
-            />
-          {renderDots()}
-          <View style={{padding:16}}>
-          <Text style={styles.title}>{listing?.title}</Text>
-          <Text style={styles.price}>${listing?.price}</Text>
-          <Text style={styles.details}>Details</Text>
-          <Text style={styles.label}>Condition</Text>
-          <Text style={styles.text}>{listing?.condition}</Text>
-          {listing?.dynamicFields && Object.entries(listing.dynamicFields).length > 0 && (
-            <>
-              {Object.entries(listing.dynamicFields).map(([key, value]) => (
-                <View key={key}>
-                  <Text style={styles.label}>{key.charAt(0).toUpperCase() + key.slice(1)}</Text>
-                  <Text style={styles.text}>{value}</Text>
-                </View>
-              ))}
-            </>
-          )}
-          {
-            listing?.createdAt && (
-              <>
-              <Text style={styles.label}>Listed</Text>
-              <View style={{flexDirection:'row'}}>
-                <Text style={styles.text}>{getTimeSincePosted(listing?.createdAt)} by</Text>
-                <TouchableOpacity onPress={onSellerDetails}>
-                 <Text style={styles.sellername}> {listing?.sellerId.username}</Text>
-                </TouchableOpacity>
-              </View>
-              </>
-            )
-          }
-            {listing?.description ? (
-            <>
-              <Text style={styles.label}>Description</Text>
-              <Text style={styles.description}>{listing.description}</Text>
-            </>
-          ) : (
-            <View />
-          )}
-          <Text style={styles.label}>Address</Text>
-          <Text style={styles.text}>{listing?.address}</Text>
-          </View>
-        </ScrollView> */}
 
         {/* Fixed buttons */}
         {viewVisible && (
@@ -206,7 +129,19 @@ const ListingDetails = () => {
             </TouchableOpacity>
 
            <TouchableOpacity style={styles.ChatButton} onPress={() => {
-            router.push({pathname:'/(me)/chat',params:{listingId:listingId,receiverId:listing?.sellerId._id,receiverName:listing?.sellerId.username,receiverEmail:listing?.sellerId.email,currentUserId: userId,token:token,price:listing?.price,sellerId:listing?.sellerId._id}})
+            console.log(`Listing Details receiverId ${listing?.sellerId._id} sellername=> ${listing?.sellerId.username} username=> ${user?.username}`)
+            router.push({pathname:'/(me)/chat',params:{
+              listingId:listingId,
+              listingTitle:listing?.title
+              ,receiverId:listing?.sellerId._id
+              ,receiverIdentify:'seller'
+              ,receiverName:listing?.sellerId.username
+              ,receiverEmail:listing?.sellerId.email
+              ,receiverprofileImage:encodeURIComponent(listing?.sellerId.profileImage || '')
+              ,currentUserId: userId
+              ,currentUserName:listing?.sellerId._id === userId? listing.sellerId.username : user?.username
+              ,token:token,price:listing?.price,sellerId:listing?.sellerId._id
+              ,chat:JSON.stringify(chat)}})
             }}>
               <Text style={styles.ChatText}>Chat</Text>
           </TouchableOpacity>

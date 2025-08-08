@@ -133,6 +133,21 @@ const chatStyles = StyleSheet.create({
     color:"#FFF",
     fontWeight:'bold'
   },
+   DisabledButton: {
+   // flex:1,
+    width:100,
+    height:40,
+    backgroundColor:'grey',
+    alignItems:'center',
+    justifyContent:'center',
+    borderRadius:5,
+    padding:5
+  },
+  DisabledText: {
+    fontSize:14,
+    color:"#fff",
+    fontWeight:'bold'
+  },
    FilledReviewButton: {
    // flex:1,
     minWidth:100,
@@ -143,16 +158,50 @@ const chatStyles = StyleSheet.create({
     borderRadius:5,
     padding:5
   },
-   image:{
-        width:60,
-        height:60,
-        borderRadius:30,
-    },
-    userIcon:{
-      alignItems:'center',
-      marginTop:50,
-      marginBottom:50
-    }
+  image:{
+    width:60,
+    height:60,
+    borderRadius:30,
+  },
+  userIcon:{
+    alignItems:'center',
+    marginTop:50,
+    marginBottom:50
+  },
+  SettingMainContainer: {
+      flex:1,
+      padding:20,
+      flexDirection: 'column',
+      backgroundColor:'#000'
+  },
+  SettingContainer:{
+    alignItems:'center',
+    justifyContent:'center',
+    flex:1,
+    backgroundColor:'#000'
+  },
+  SettingLabel: {
+    fontSize:16,
+    color:"#FFF",
+    textAlign:'center'
+  },
+  SettingButton: {
+    width:130,
+    height:40,
+    backgroundColor:'#000',
+    alignItems:'center',
+    justifyContent:'center',
+    borderColor:"#fff",
+    borderWidth:1,
+    borderRadius:5,
+    padding:5,
+    marginTop:10
+  },
+  SettingText: {
+    fontSize:16,
+    color:"#FFF",
+    fontWeight:'bold'
+  },
 })
 
 export default chatStyles;

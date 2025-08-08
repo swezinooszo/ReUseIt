@@ -7,7 +7,7 @@ const Message = require('../models/messageModel')
 // @route   GET /api/messages
 // @access Private
 const getMessages = asyncHandler(async (req,res) => {
-    console.log(`getMessages ${req.params.chatId }`)
+   // console.log(`getMessages ${req.params.chatId }`)
     const messages = await Message.find({ chatId: req.params.chatId }).sort('createdAt');
     res.status(200).json(messages);
 })

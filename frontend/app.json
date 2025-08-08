@@ -12,7 +12,10 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.szo.reuseit",
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSCameraUsageDescription": "This app needs access to your camera to take profile pictures.",
+        "NSPhotoLibraryUsageDescription": "This app needs access to your photo library to select images.",
+        "NSPhotoLibraryAddUsageDescription": "This app needs permission to save photos to your library."
       }
     },
     "android": {
@@ -22,7 +25,11 @@
       },
       "edgeToEdgeEnabled": true,
       "package": "com.szo.reuseit",
-      "googleServicesFile": "./google-services.json"
+      "googleServicesFile": "./google-services.json",
+       "notification": {
+        "icon": "./assets/icons/reuseit-icon.png",
+        "color": "#ffffff"
+      }
     },
     "web": {
       "bundler": "metro",
@@ -39,7 +46,9 @@
           "resizeMode": "contain",
           "backgroundColor": "#ffffff"
         }
-      ]
+      ],
+      "expo-web-browser",
+      "expo-notifications"
     ],
     "experiments": {
       "typedRoutes": true

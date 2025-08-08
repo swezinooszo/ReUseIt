@@ -1,7 +1,7 @@
 import { StyleSheet } from "react-native";
 
 const itemReviewFormStyles = StyleSheet.create({
-         container:{
+    container:{
         flex:1,
         padding:20,
         backgroundColor:'white'

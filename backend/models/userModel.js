@@ -17,11 +17,18 @@ const userSchema = mongoose.Schema(
         },
         otp: String,
         otpExpires: Date,
-        isVerified: { type: Boolean, default: false }
+        isVerified: { type: Boolean, default: false },
+        expoPushTokens: [String], // Array of Expo tokens
+        favorites: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Listing' }],
+        profileImage: {
+        type: String, // store the Firebase URL
+        default: null,  // optional
+        },
     },
     {
         timestamps: true
-    }
+    },
+    
 )
 
 module.exports = mongoose.model('User',userSchema)

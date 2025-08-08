@@ -1,4 +1,4 @@
-import {View,Text,StyleSheet,FlatList,TouchableOpacity} from "react-native"
+import {View,Text,Image,FlatList,TouchableOpacity} from "react-native"
 import {SafeAreaView, SafeAreaProvider} from 'react-native-safe-area-context';
 import React, {useEffect,useState} from "react"
 import axios from "axios";
@@ -10,11 +10,12 @@ import styles from "../styles/chatListStyles";
 import AntDesign from '@expo/vector-icons/AntDesign';
 import { useFocusEffect } from '@react-navigation/native';
 import { useCallback } from 'react';
-
+import { getTokenAndUserId } from "../utils/listingDetailsUtils";
 interface User {
   _id: string;
   username: string;
   email: string;
+  profileImage:string;
 }
 
 interface Listing {
@@ -35,34 +36,19 @@ interface Chat {
   updatedAt: string;
 }
 
-type MyJwtPayload = {
-  id: string; // or userId: string;
-};
 const chatlist = () => {
 
     const [chats, setChats] = useState<Chat[]>([]);
     const [token, setToken] = useState<string | null>(null);
     const [userId,setUserId] = useState('');
-    // const api = axios.create({
-    //     baseURL: 'http://localhost:8000/api',
-    // });
 
     // retrieve userID from token
     useEffect(() => {
       const loadToken = async () => {
         console.log("loadToken")
-        const storedToken = await AsyncStorage.getItem('userToken');
-        console.log(`storedToken ${storedToken}`)
-        if (storedToken) {
-          setToken(storedToken);
-           try {
-                const decoded = jwtDecode<MyJwtPayload>(storedToken);
-                setUserId(decoded.id);
-                console.log("Decoded userId ", decoded.id);
-            } catch (error) {
-                console.error("Error decoding token:", error);
-            }
-        }
+        const { token, userId }  = await getTokenAndUserId();
+        if(token) setToken(token)
+        if(userId) setUserId(userId)
       };
       loadToken();
   }, []);
@@ -94,13 +80,33 @@ const chatlist = () => {
     // renderChatItem
     const renderChatItem = ({ item }:  { item: Chat }) => {
     const otherUser = item.buyerId._id === userId ? item.sellerId : item.buyerId;
+    const otherUserIdentify = item.buyerId._id === userId ? 'seller' : 'buyer';
+    const currentUserName = item.buyerId._id === userId ? item.buyerId.username : item.sellerId.username;
     const listing = item.listingId;
     const isUnread = !item.lastMessageReadBy?.includes(userId);
     return (
       <TouchableOpacity
         onPress={ async () => 
           {
-            router.navigate({ pathname: '/(me)/chat',params:{listingId:listing._id,receiverId: otherUser._id,receiverName:otherUser.username,receiverEmail:otherUser.email,currentUserId: userId,token:token,price:item.listingId.price,sellerId:item.sellerId._id,chatIdParam:item._id,isUnread:isUnread.toString()}});
+            console.log(`chatlist receiverprofileImage ${otherUser.profileImage}`)
+            router.navigate({ pathname: '/(me)/chat',params:{
+              listingId:listing._id
+              ,listingTitle:listing.title
+              ,receiverId: otherUser._id
+              ,receiverIdentify:otherUserIdentify
+              ,receiverName:otherUser.username
+              ,receiverEmail:otherUser.email
+              ,receiverprofileImage:encodeURIComponent(otherUser.profileImage)
+              ,currentUserId: userId
+              ,currentUserName:currentUserName
+              ,token:token
+              ,price:item.listingId.price
+              ,sellerId:item.sellerId._id
+              // use this param for marking the message as read. need to pass chatIdParam because ChatId from useChatSocket is not already created yet. 
+              //,chatIdParam:item._id,isUnread:isUnread.toString()
+              //chat is to used in notification context to nagivate chat.tsx. It's required as param to main current chat flow instead of passing all parameter, 
+              // passs chat object
+              ,chat:JSON.stringify(item)}});
           }
         }
         style={{
@@ -110,13 +116,25 @@ const chatlist = () => {
           borderBottomColor: '#eee'
         }}
       >
-        <View style={styles.subViewContainer}>
-          <Text style={{fontSize:14,color:'#888',fontWeight:'bold'}}>{otherUser.username}</Text>
-           <Text style={{fontSize:18, fontWeight: 'bold',marginTop:8 }}>{item.listingId.title}</Text>
-          <Text style={{ fontSize: 14, marginTop: 5, fontWeight: isUnread ? 'bold' : 'normal', color: isUnread ? '#000' : '#888',}} numberOfLines={1}
-            >
-            {item.lastMessage}
-          </Text>
+        <View style={styles.mainViewContainer}>
+          <View style={styles.imageContainer}>
+          <Image
+              source={
+                otherUser?.profileImage
+                ? { uri: otherUser?.profileImage }
+                : require('../../assets/images/default_profile.jpg')
+              }
+              style={styles.image}
+            />
+          </View>
+          <View style={styles.subViewContainer}>
+            <Text style={{fontSize:14,color:'#888',fontWeight:'bold'}}>{otherUser.username}</Text>
+            <Text style={{fontSize:16, fontWeight: 'bold',marginTop:8 }}>{item.listingId.title}</Text>
+            <Text style={{ fontSize: 14, marginTop: 5, fontWeight: isUnread ? 'bold' : 'normal', color: isUnread ? '#000' : '#888',}} numberOfLines={1}
+              >
+              {item.lastMessage}
+            </Text>
+          </View>
         </View>
        </TouchableOpacity>
     );

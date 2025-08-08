@@ -1,20 +1,23 @@
 import React, { useEffect, useState,useRef } from 'react';
-import {View,Text,StyleSheet,FlatList,TextInput,Image,TouchableOpacity,
-  KeyboardAvoidingView, Platform, Keyboard, TouchableWithoutFeedback
+import {AppState, AppStateStatus,View,Text,StyleSheet,FlatList,TextInput,Image,TouchableOpacity,
+  KeyboardAvoidingView, Platform, Keyboard, TouchableWithoutFeedback,Linking
 } from "react-native"
 import {SafeAreaView, SafeAreaProvider} from 'react-native-safe-area-context';
-import { Socket } from 'socket.io-client';
 import styles from '../styles/chatStyles';
 import axios from 'axios';
 import { useLocalSearchParams } from "expo-router";
 import api from '../utils/api';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router } from 'expo-router';
-import { showConfirmationDialog } from '../utils/chatUtils';
-import { isSearchBarAvailableForCurrentPlatform } from 'react-native-screens';
+import { checkIfReviewExists, showAlertDialog, showConfirmationDialog } from '../utils/chatUtils';
 import { useChatSocket } from './useChatSocket';
-import DateTimePicker from '@react-native-community/datetimepicker';
-
+import { soldListing } from '../utils/chatUtils';
+import { markAsRead } from '../utils/chatUtils';
+import { isNotificationEnabled } from '@/app/utils/checkNotificationPermission';
+import CustomText from '../components/CustomText';
+import CustomButton from '../components/CustomButton';
+import { useFocusEffect } from '@react-navigation/native';
+import { useCallback } from 'react';
 
 interface Message {
   _id: string;
@@ -25,8 +28,9 @@ interface Message {
 }
 interface Listing {
   _id: string;
- isReserved: Boolean;
- isSold: Boolean;
+ acceptedOfferIds:string[];
+ isReserved: boolean;
+ isSold: boolean;
 }
 interface Offer{
   _id: string;
@@ -36,17 +40,17 @@ interface Offer{
   status: string;
 }
 interface checkOffer {
-  exists: Boolean,
+  exists: boolean,
   offer?: Offer
 }
 const chat = () => {
+    const {listingId='',receiverId='',receiverIdentify='',receiverName='',receiverEmail='',receiverprofileImage='',currentUserId='',token='',price=0,sellerId='',chat} = useLocalSearchParams() as Record<string, string>;
+    // to show unread message as bold
+   // const {chatIdParam='',isUnread=''} = useLocalSearchParams();
+    //listingTitle and currentUserName is for notification to show send name and listing title
+    // to recepeint
+    const {listingTitle='',currentUserName=''} = useLocalSearchParams();
 
-   const {listingId='',receiverId='',receiverName='',receiverEmail='',currentUserId='',token='',price=0,sellerId=''} = useLocalSearchParams() as Record<string, string>;
-
-   const {chatIdParam='',isUnread=''} = useLocalSearchParams();
-   // console.log(`Chat screen listingId ${listingId} receiverId ${receiverId} currentUserId${currentUserId}  token${token}`)
-    // const [socket, setSocket] = useState<Socket | null>(null);
-    // const [chatId, setChatId] = useState(null);
     const [messages, setMessages] = useState<Message[]>([]);
     const [input, setInput] = useState('');
 
@@ -57,67 +61,87 @@ const chat = () => {
     const [reviewButtonVisible,setReviewButtoonVisible] = useState(false)
     const [reserveButtonVisible,setReserveButtoonVisible] = useState(false)
     const [soldButtonVisible,setSoldButtoonVisible] = useState(false)
-    const [isReserved,setIsReserved] = useState<Boolean>(false)
+    const [isReserved,setIsReserved] = useState<boolean>(false)
     const [reserveTex,setReserveText] = useState('Reserve')
     const [reviewTex,setReviewText] = useState('Leave Review')
+    const [isDisabledButton,setDisabledButton] = useState<boolean>(false)
     // flat list scroll to the end with animation
     const flatListRef = useRef<FlatList>(null);
     const [contentHeight, setContentHeight] = useState(0);
     const [layoutHeight, setLayoutHeight] = useState(0);
 
-  // Chat Socket for initiating, sending and receiving message
-  const { socket, chatId } = useChatSocket(token,listingId,receiverId,(msg) => setMessages(prev => [...prev, msg]) // ✅ correct callback
-  );
+    // Chat Socket for initiating, sending and receiving message
+    const { socket, chatId } = useChatSocket(token,listingId,receiverId,currentUserId,(msg) => setMessages(prev => [...prev, msg]) // ✅ correct callback
+    );
 
-  // Date time picker
-  const [startDateTime, setStartDateTime] = useState<Date | null>(null);
-  const [endDateTime, setEndDateTime] = useState<Date | null>(null);
-  const [showStartPicker, setShowStartPicker] = useState(false);
-  const [showEndPicker, setShowEndPicker] = useState(false);
+    // check notification permission
+    const [isEnabled, setIsEnabled] = useState<boolean>(false);
+    // appState to check when the app comes back to the foreground
+    const appState = useRef(AppState.currentState);
+
+    // check notification permission
+    const checkPermission = async () => {
+      console.log(`checkPermission `)
+      const enabled = await isNotificationEnabled();
+      console.log(`checkPermission enabled ${enabled}`)
+      setIsEnabled(enabled);
+    };
 
 
     // ********** add 'make offer' , 'accept offer', 'review' , 'reserve/unreserve' and 'sold' buttons
-    // based on user role (buyer and users)
+    // ********** based on user role (buyer and seller)
     useEffect(()=>{
       if(!checkOffer) return
-      
-      if (currentUserId !== sellerId){
-        console.log(` buyer offering currentUserId ${currentUserId}   sellerId${sellerId}`)
-         // make offer if you want
-            console.log(` buyer offering checkOffer?.exists ${checkOffer?.exists}`)
+        // ** buer making offer
+      if (currentUserId !== sellerId){//current user is buyer
+         // console.log(` buyer offering currentUserId ${currentUserId}   sellerId${sellerId}`)
+         // console.log(` buyer offering checkOffer?.exists ${checkOffer?.exists}`)
+          /// if there is no offer, make 'offer button' visible.
           if(!checkOffer?.exists ){
             setMakeOfferButtoonVisible(true);
           }
+          // if there is offer with 'pending' status, already made an offer. so make 'offer button' invisible.
           else if(checkOffer?.exists && checkOffer?.offer?.status === "pending"){
             setMakeOfferButtoonVisible(false);
           }
-           // leave review after offer is accept in case leave review ifthe seller don't sell item or good review if item is sold to you.
-          else if(checkOffer?.exists && checkOffer?.offer?.status === "accepted"){
+          // if the offer is already existing with 'accepted' status, and 'buyerId' of offer is same as 'currentUserId' (means buyer), show 'leaveReview' button
+          else if(checkOffer?.exists && checkOffer?.offer?.status === "accepted"  && checkOffer?.offer.buyerId === currentUserId 
+            && checkOffer?.offer.listingId.isSold){//add this one line more
             setReviewButtoonVisible(true);
           }
       }
       
-         console.log(` checkOffer isSold ${checkOffer?.offer?.listingId.isSold}`)
+        //console.log(` checkOffer isSold ${checkOffer?.offer?.listingId.isSold}`)
+        //console.log(` checkOffer checkOffer?.exists ${checkOffer?.exists} checkOffer?.offer?.status ${checkOffer?.offer?.status} checkOffer?.offer.buyerId ${checkOffer?.offer?.buyerId} receiverId ${receiverId}`)
        // ** seller accepting offer
-      if(currentUserId === sellerId){
-         // ** if there is pending offer, accept offer
-        if(checkOffer?.exists && checkOffer?.offer?.status === "pending"){
-          setAcceptOfferButtonVisible(true);
+      if(currentUserId === sellerId){//current user is seller, **receiverId** is buyer
+         // if there is pending offer, make 'accept offer' button visible
+        if(checkOffer?.exists && checkOffer?.offer?.status === "pending" ){
+            setAcceptOfferButtonVisible(true);
+        }
+        // disabled the acceptoffer button if the offer is already accepted offer from other buyer (seller can accept only one offer)
+        // if there is an offer with 'accepted' status (mean offer is accepted) and accepted buyerId is not same as receiverId (in this case,
+        // buyer Id if seller log into the app )
+        else if(checkOffer?.exists && checkOffer?.offer?.status === "accepted" && checkOffer?.offer?.buyerId !== receiverId){
+          // if(checkOffer?.offer?.listingId.acceptedOfferIds.length !== 0){
+              setAcceptOfferButtonVisible(true);
+              setDisabledButton(true);
+         // }
         }
         // ** if offer is accepted, leave review, make reserver/unreserve or sold
-        else if(checkOffer?.exists && checkOffer?.offer?.status === "accepted" && !checkOffer?.offer?.listingId.isSold){
-          buttonVisibilityAfterAccept()
+        // else if(checkOffer?.exists && checkOffer?.offer?.status === "accepted" && !checkOffer?.offer?.listingId.isSold && checkOffer?.offer.buyerId === receiverId){
+        //   buttonVisibilityAfterAccept()
           
-        }
+        // }
         // ** if it is already sold, just leave review
-        else if(checkOffer?.exists && checkOffer?.offer?.status === "accepted" && checkOffer?.offer?.listingId.isSold){
+        else if(checkOffer?.exists && checkOffer?.offer?.status === "accepted" && checkOffer?.offer?.listingId.isSold && checkOffer?.offer.buyerId === receiverId){
            buttonVisibilityAfterSold()
         }
 
         // play with reserve/unreserve text
          if (checkOffer?.offer?.listingId) {
           const isReserved = checkOffer.offer?.listingId.isReserved;
-          console.log(` isReserved from checkOffer ${isReserved}`)
+          //console.log(` isReserved from checkOffer ${isReserved}`)
           setIsReserved(isReserved)
           setReserveText(isReserved ? 'Unreserve' : 'Reserve')
       }
@@ -129,8 +153,8 @@ const chat = () => {
     const buttonVisibilityAfterAccept = () => {
           setAcceptOfferButtonVisible(false)
           setReviewButtoonVisible(true);
-          setReserveButtoonVisible(true);
-          setSoldButtoonVisible(true);
+          //setReserveButtoonVisible(true);
+         // setSoldButtoonVisible(true);
     }
 
     const buttonVisibilityAfterSold = () => {
@@ -144,96 +168,63 @@ const chat = () => {
         try {
           const res = await api.get(`/messages/${chatId}`)
           setMessages(res.data)
-          console.log(`message res ${res.data}`)
+          console.log(`message res data ${res.data} chatId ${chatId}`)
         } catch (err) {
           console.error('Error loading messages:', err);
         }
     };
 
+
+    const onMarkAsRead = async (chatId:string,currentUserId:string) =>{
+       const success = await markAsRead(chatId,currentUserId);
+       if (!success) {
+        console.log('Failed to mark messages as read');
+      }
+    }
+
     useEffect (() => {
       if(!chatId) return;
       loadMessages(chatId);
+
+      //if we open the conversation, mark the message as read.
+      //console.log(`chat id received chatId ${chatId}. currentUserId ${currentUserId}`);
+      onMarkAsRead(chatId,currentUserId);
+  
     },[chatId])
 
     // ************ chat initialised ************ //
     useEffect(() => {
-  //   console.log(`chat screen launched token ${token}`);
-  //   //It connects to your backend server at http://localhost:8000.
-  //   // You use it to: - connect server -emit event : socket.emit('sendMessage', data)
-  //   const newSocket = createSocket(token);//createSocket();
-  //   setSocket(newSocket);
-
-  //  // console.log(`chat screen newSocket ${newSocket}`);
-
-  //   newSocket.on('connect', () => {
-  //    console.log('Socket connected');
-
-  //     newSocket.emit('joinChat', {
-  //       listingId: listingId,
-  //       receiverId: receiverId
-  //     });
-
-  //     newSocket.on('chatJoined', ({ chatId }) => {
-  //        //  console.log(`chatJoined ${chatId}`)
-  //       setChatId(chatId);
-  //       loadMessages(chatId);//// Load only when server confirms joined
-  //     });
-
-  //     newSocket.on('newMessage', (msg) => {
-  //      // console.log(`new message ${msg}`)
-  //       setMessages((prev) => [...prev, msg]);
-  //     });
-  //   });
-
-  //   newSocket.on('connect_error', (err) => {
-  //     console.log('Connection error:', err.message); // This is critical!
-  //   });
-
-  //   newSocket.on('error', (err) => {
-  //     console.log('Socket error:', err.message);
-  //   });
-
+   
     // ** check if existing offer.
     checkExistingOffer();
 
-     // ** to update new message as read
-     if(isUnread === 'true' && chatIdParam && currentUserId){
-       markAsRead();
-     }
+    // **check notification permission
+    checkPermission();
 
-    // return () => {
-    //   newSocket.disconnect();
-    // };
+    const subscription = AppState.addEventListener('change', async (nextAppState: AppStateStatus) => {
+      console.log(`subscription ${subscription}`)
+      if (appState.current.match(/inactive|background/) && nextAppState === 'active') {
+          console.log(` App came back to foreground ${subscription}`)
+        // App came back to foreground
+        await checkPermission();
+      }
+      appState.current = nextAppState;
+    });
+
+     return () => {
+      subscription.remove();
+    };
+     // console.log(`Chat markAsRead useEffect isUnread ${isUnread}  chatIdParam ${chatIdParam}  currentUserId ${currentUserId} `)
+     // ** to update new message as read. we need chatIdParam here because ChatId from useChatSocket is not already created yet.
+    //  if(isUnread === 'true' && chatIdParam && currentUserId){
+    //    markAsRead();
+    //  }
   }, []);
 
-    const onClose = () =>{
-      router.back();
-    }
-
-    // ************* mark as read *********** //
-    const markAsRead = async () => {
-    try {
-     console.log(`Chat markAsRead chatId ${chatIdParam} currentUserId ${currentUserId}`)
-      await api.put(`/chats/read/${chatIdParam}`, { userId: currentUserId });
-    } catch (error) {
-      console.log("Failed to mark chat as read", error);
-    }
-  };
-
-   // ************* send chat *********** //
-   const handleSend = () => {
-    console.log("handleSend")
-            console.log(`handleSend input ${input} socket${socket} chatId ${chatId}`)
-    if (!chatId || !input) return;
-        console.log(`handleSend input ${input} socket${socket}`)
-    socket!.emit('sendMessage', { chatId, message: input });
-    setInput('');
-  };
-
-   // ** check if existing offer.
+     // ** check if existing offer.
    const checkExistingOffer = async() => {
     const userId = sellerId !== currentUserId ? currentUserId : receiverId;//confirm it's buyerId when call api
-    console.log(`buyerId ${userId}  listingId${listingId}`)
+   // console.log(`buyerId ${userId}  listingId${listingId}`)
       try{
        //console.log(`checkExistingOffer currentUserId ${currentUserId} listingId ${listingId}`)
         const res = await api.get(`/offers/check?buyerId=${userId}&listingId=${listingId}`)
@@ -243,6 +234,43 @@ const chat = () => {
           console.log('Error loading messages:', err);
       }
     }
+
+    // ************* mark as read *********** //
+  //   const markAsRead = async () => {
+  //   try {
+  //     //console.log(`Chat markAsRead method: chatId ${chatIdParam} currentUserId ${currentUserId}`)
+  //     // await api.put(`/chats/read/${chatIdParam}`, { userId: currentUserId });
+  //     await api.put(`/chats/read/${chatId}`, { userId: currentUserId });
+  //   } catch (error) {
+  //     console.log("Failed to mark chat as read", error);
+  //   }
+  // };
+
+  const sendMessage = (chatId:string,message:string) =>{
+    socket!.emit('sendMessage', { chatId, message: message
+      // add below params are to show as notification info
+      ,receiverId,listingTitle,currentUserName
+      //added extra param for notification to show as noti info and page trigger (when notification tap, come this page again).
+      ,token,chat
+     });
+  }
+   // ************* send chat *********** //
+   const handleSend = () => {
+   // console.log("handleSend")
+  //   console.log(`handleSend input ${input} socket${socket} chatId ${chatId}`)
+    if (!chatId || !input) return;
+       // console.log(`handleSend input ${input} socket${socket}`)
+
+    // *** send Message
+    // socket!.emit('sendMessage', { chatId, message: input
+    //   // add below params are to show as notification info
+    //   ,receiverId,listingTitle,currentUserName
+    //   //added extra param for notification to show as noti info and page trigger (when notification tap, come this page again).
+    //   ,token,chat
+    //  });
+    sendMessage(chatId,input);
+    setInput('');
+  };
 
   // ** make offer
   const onMakeOffer = async () =>{
@@ -258,7 +286,9 @@ const chat = () => {
           // send make an offer chat
           if(socket){
             if (!chatId) return;
-            socket!.emit('sendMessage', { chatId, message: `Make An Offer \n $${price}` });
+            // socket!.emit('sendMessage', { chatId, message: `Make An Offer \n $${price}`
+            // });
+            sendMessage(chatId,`Make An Offer \n $${price}`);
           }else{
             console.log('message room is not ready..')
           }
@@ -275,16 +305,24 @@ const chat = () => {
   const acceptOffer = async () =>{
      try{
         const res = await api.post(`/offers/accept/${checkOffer?.offer?._id}`)
-        console.log()
         if(res.status == 200){
           buttonVisibilityAfterAccept()
           // send accepted offer chat
           if(socket){
             if (!chatId) return;
-            socket!.emit('sendMessage', { chatId, message: `Accepted Offer \n $${price}` });
+            // *** send Message
+            // socket!.emit('sendMessage', { chatId, message: `Accepted Offer \n $${price}` 
+            //  // add below params are to show as notification info
+            // ,receiverId,listingTitle,currentUserName
+            // //added extra param for notification to show as noti info and page trigger (when notification tap, come this page again).
+            // ,token,chat
+            // });
+            sendMessage(chatId,`Accepted Offer \n $${price}`)
           }else{
             console.log('message room is not ready..')
           }
+          //after accept offer, seller is required to reserve the listing for some time
+          router.push({pathname:'/(me)/reservationTiming',params:{listingId:checkOffer?.offer?.listingId._id,buyerId:checkOffer?.offer?.buyerId}});
         }else{
           console.log(`onAcceptOffer not success res ${res.data}`)
         }
@@ -294,142 +332,172 @@ const chat = () => {
   }
 
   const onAcceptOffer =  () =>{
-      showConfirmationDialog(
-      'Confirm Accept Offer',
-      'Once you accept the offer, please select task start and end time.',
-      () => {
-        setShowStartPicker(true);
-      },
-      () => { console.log('Offer canceled'); }
-    );
-  //   showConfirmationDialog(
-  //   'Confirm Accept Offer',
-  //   'Once you accept the offer, \n you will be able to leave a review for each other',
-  //   () => {
-  //      // ✅ OK pressed
-  //      console.log('Offer sent');
-  //      acceptOffer();
-  //   },
-  //   () => {
-  //     // ❌ Cancel pressed
-  //     console.log('Offer canceled');
-  //   }
-  // );
-  }
+     console.log(`onAcceptOffer isEnabled ${isEnabled}`)
+    // if(!isEnabled){
+    //   showAlertDialog("Notification is disabled",()=>{
+    //     console.log('click ok')
+    //   })
+    // }
 
-  useEffect(() => {
-    console.log(`after start date time is selected ${startDateTime} endDateTime${endDateTime}`)
-  if (startDateTime && !endDateTime) {
-    setShowEndPicker(true);
-  }
-}, [startDateTime]);
-
-useEffect(() => {
-    console.log(`after end date time is selected ${startDateTime} endDateTime${endDateTime}`)
-  if (startDateTime && endDateTime) {
-    acceptOfferWithTimer();
-  }
-}, [endDateTime]);
-
-const acceptOfferWithTimer = async () => {
-  console.log("acceptOfferWithTimer")
-  try {
-   // await acceptOffer();  // existing logic
-    if (endDateTime) {
-      const delay = endDateTime.getTime() - new Date().getTime();
-      if (delay > 0) {
-        setTimeout(() => {
-            console.log("setTimeout")
-            setStartDateTime(null)
-            setEndDateTime(null)
-          showConfirmationDialog(
-            'Task Completed?',
-            'Is the task completed or not?',
-            () => console.log('Task marked completed'),
-            () => console.log('Task marked not completed')
-          );
-        }, delay);
-      }
+    showConfirmationDialog(
+    'Confirm Accept Offer',
+    'Once you accept the offer, \n you will not be able to accept other offers.',
+    () => {
+       // ✅ OK pressed
+       console.log('Offer sent');
+       acceptOffer();
+        //after accept offer, seller is required to reserve the listing for some time
+       // router.push({pathname:'/(me)/reservationTiming',params:{listingId:checkOffer?.offer?.listingId._id}});
+    },
+    () => {
+      // ❌ Cancel pressed
+      console.log('Offer canceled');
     }
-  } catch (error) {
-    console.log('Failed to accept offer with timer', error);
+    );
   }
-};
-
 
 
   // ** reserve listing
-  // const reserveListing = async () =>{
-  //    try{
-  //       const listingId = checkOffer?.offer?.listingId._id;
-  //      console.log(`reserveListing  listingId ${listingId}`)
-  //       const res = await api.put(`/offers/reserve/${listingId}`,{
-  //         isReserved: !isReserved
-  //       })
-  //       if(res.status == 200){
-  //         console.log(`isReserved respone ${res.data.listing.isReserved}`)
-  //         const isReserved = res.data.listing.isReserved;
-  //         const reserveText = isReserved ? 'Unreserve' :'Reserve'
-  //         setIsReserved(isReserved)
-  //         setReserveText(reserveText)
-  //       }else{
-  //         console.log(`reserveListing not success res ${res.data}`)
-  //       }
-  //   }catch(error){
-  //     console.log(`reserveListing error ${error}`)
-  //   }
-  // }
+  const reserveListing = async () =>{
+    console.log(`reserveListing isReserved=${isReserved}`);
+     try{
+        const listingId = checkOffer?.offer?.listingId._id;
+        const buyerId = checkOffer?.offer?.buyerId;
+        // const res = await api.put(`/offers/reserve/${listingId}`,{
+        //   isReserved: !isReserved
+        // })
+        const res = await api.put(`/offers/reserve`,{
+          isReserved: !isReserved,
+          listingId: listingId,
+          buyerId : buyerId
+        });
 
-  //  const onReserveListing =  () =>{
-  //   console.log(`onReserveListing isReserved ${isReserved}`)
-  //   const title = isReserved ? 'Mark your item as unreserved' : 'Mark your item as reserved'
-  //   const message = isReserved ? 'When unreserved, your item will be visible in the marketplace.' :
-  //   'When reserved, this item will not be visible in the marketplace and you will not receive any offers.'
-  //   showConfirmationDialog(
-  //   title,
-  //   message,
-  //   () => {
-  //      reserveListing();
-  //   },
-  //   () => {}
-  // );
-  // }
+  
+        if(res.status == 200){
+          const isReserved = res.data.listing.isReserved;
+          const reserveText = isReserved ? 'Unreserve' :'Reserve'
+          setIsReserved(isReserved)
+          setReserveText(reserveText)
+        }else{
+          console.log(`reserveListing not success res ${res.data}`)
+        }
+    }catch(error){
+      console.log(`reserveListing error ${error}`)
+    }
+  }
+
+   const onReserveListing =  () =>{
+    console.log(`onReserveListing isReserved ${isReserved}`)
+    const title = isReserved ? 'Mark your item as unreserved' : 'Mark your item as reserved'
+    const message = isReserved ? 'When unreserved, your item will be visible in the marketplace.' :
+    'When reserved, this item will not be visible in the marketplace and you will not receive any offers.'
+    showConfirmationDialog(
+    title,
+    message,
+    () => {
+       reserveListing();
+    },
+    () => {}
+  );
+  }
 
 
   // ** Sold Listing
-  // const soldListing = async () =>{
+  // const soldListing = async (listingId:string) =>{
   //    try{
-  //      const listingId = checkOffer?.offer?.listingId._id;
   //      console.log(`soldListing  listingId ${listingId}`)
   //       const res = await api.put(`/offers/sold/${listingId}`)
   //       console.log(`soldListing res ${res.data}`)
   //       if(res.status == 200){
-  //         buttonVisibilityAfterSold()
+  //         console.log(`soldListing success res ${res.data}`)
   //       }else{
-  //         console.log(`onAcceptOffer not success res ${res.data}`)
+  //         console.log(`soldListing not success res ${res.data}`)
   //       }
   //   }catch(error){
-  //     console.log(`onAcceptOffer error ${error}`)
+  //     console.log(`soldListing error ${error}`)
   //   }
   // }
 
-  // const onSoldListing =  () =>{
-  //   showConfirmationDialog(
-  //   'Mark listing as Sold?',
-  //   'You can not undo this action. This item will not be visible in the marketplace and buyers can no longer make offers for this listing',
-  //   () => {
-  //      soldListing();
-  //   },
-  //   () => {
-  //     console.log('Offer canceled');
-  //   }
-  // );
-  // }
+  const onSoldListing =  () =>{
+    showConfirmationDialog(
+    'Mark listing as Sold?',
+    'You can not undo this action. This item will not be visible in the marketplace and buyers can no longer make offers for this listing',
+    async () => {
+       //soldListing(checkOffer?.offer?.listingId._id as string);
+        const success = await soldListing(checkOffer?.offer?.listingId._id as string);
+        if (success) {
+          console.log('Listing marked as sold successfully');
+        } else {
+          console.log('Failed to mark listing as sold');
+        }
 
-   const onSellerDetails = () => {
-      router.push({pathname:'/(explore)/sellerDetails',params:{sellerId:sellerId}})
+    },
+    () => {
+      console.log('Offer canceled');
     }
+  );
+  }
 
+  /// ** Reivew
+  const onReview = async () => {
+    console.log(`onReview listingId ${listingId}`)
+    const exists = await checkIfReviewExists(listingId,receiverId)
+    console.log(`onReview result exist ${exists}`)
+    if(exists){
+       router.push({pathname:'/(me)/reviewList',params:{userIdParam:receiverId}})
+    }else{
+      router.push({pathname:'/(me)/review',params:{listingId:checkOffer?.offer?.listingId._id,
+        revieweeId:receiverId,revieweeIdentify:receiverIdentify,revieweeName:receiverName,revieweeprofileImage:encodeURIComponent(receiverprofileImage)}})
+    }
+  }
+
+  const onClose = () =>{
+    router.back();
+  }
+
+  const onSellerDetails = () => {
+      router.push({pathname:'/(explore)/sellerDetails',params:{sellerId:sellerId}})
+  }
+
+    // useFocusEffect(
+    //   useCallback(() => {
+    //     console.log(`useFocusEffect ${isEnabled}`)
+    //   }, [])
+    // );
+
+  const openSettings = async () => {
+    await Linking.openSettings();
+  };
+
+  if(!isEnabled){
+     return (
+     <SafeAreaProvider>
+       <SafeAreaView style={[styles.SettingMainContainer]}>
+          {/* <CustomText name='Please enable notification to get realtime Chat and Listing status updates' flex={0}></CustomText>
+          <CustomButton text="Open Setting
+          " onPress={openSettings}></CustomButton> */}
+          <View style={styles.chatHeaderContainer}>
+              <View  style={styles.subViewContainer}>
+                  <Ionicons name="arrow-back-outline" size={24} color="white" onPress={onClose}/>
+              </View>
+              <View style={styles.chatTitleContainer}>
+               </View>
+              <View  style={styles.subViewContainer}>
+              </View>
+          </View>
+          <View style={styles.SettingContainer}>
+            <Text style={styles.SettingLabel}>
+                Please enable notification to get realtime Chat and Listing status updates
+            </Text>
+            
+            <TouchableOpacity style={styles.SettingButton} onPress={openSettings}>
+              <Text style={styles.SettingText}>Go to Settings</Text>
+            </TouchableOpacity>
+          </View>
+       </SafeAreaView>
+     </SafeAreaProvider>
+     )
+  }
     return(
         <SafeAreaProvider>
            <KeyboardAvoidingView
@@ -461,19 +529,19 @@ const acceptOfferWithTimer = async () => {
                   }
                   {
                     acceptOfferButtonVisible && (
-                      <TouchableOpacity style={styles.FilledButton} onPress={onAcceptOffer}>
-                      <Text style={styles.FilledText}>Accept Offer</Text>
+                      <TouchableOpacity style={!isDisabledButton ? styles.FilledButton : styles.DisabledButton} onPress={onAcceptOffer} disabled={isDisabledButton}>
+                      <Text style={!isDisabledButton ? styles.FilledText : styles.DisabledText}>Accept Offer</Text>
                       </TouchableOpacity>
                     )
                   }
                   {
                     reviewButtonVisible && (
-                      <TouchableOpacity style={[styles.FilledReviewButton]} >
+                      <TouchableOpacity style={[styles.FilledReviewButton]} onPress={onReview}>
                       <Text style={styles.FilledText}>{reviewTex}</Text>
                       </TouchableOpacity>
                     )
                   }
-                  {/* {
+                  {
                     reserveButtonVisible && (
                       <TouchableOpacity style={styles.FilledButton} onPress={onReserveListing}>
                       <Text style={styles.FilledText}>{reserveTex}</Text>
@@ -485,13 +553,18 @@ const acceptOfferWithTimer = async () => {
                         <Text style={styles.FilledText}>Mark as sold</Text>
                       </TouchableOpacity>
                     )
-                  } */}
+                  }
                   </View>
                   <View style={styles.chatContainer}>
                       <FlatList
                         ListHeaderComponent={
                           <TouchableOpacity style={styles.userIcon} onPress={onSellerDetails}>
-                              <Image style={styles.image} source={require('../../assets/images/default_profile.jpg')} ></Image>
+                              <Image 
+                              style={styles.image} 
+                              source={
+                                receiverprofileImage ? {uri: receiverprofileImage}
+                                : require('../../assets/images/default_profile.jpg')
+                                } ></Image>
                               <Text style={styles.chatTitle} >
                                 {receiverName}
                             </Text>
@@ -509,7 +582,8 @@ const acceptOfferWithTimer = async () => {
                         //   flatListRef.current?.scrollToEnd({ animated: true });
                         // }}
                         data={messages}
-                        keyExtractor={(item) => item._id}
+                        //keyExtractor={(item) => item._id}
+                        keyExtractor={(item, index) => `${item._id ?? 'id'}-${index}`}
                         renderItem={({ item }) => {
                         const senderId = currentUserId
                         const isSender = item.senderId === senderId;
@@ -543,30 +617,6 @@ const acceptOfferWithTimer = async () => {
                       <Text style={styles.sendButtonText}>Send</Text>
                     </TouchableOpacity>
                   </View>
-
-                  {showStartPicker && (
-                  <DateTimePicker
-                    value={startDateTime || new Date()}
-                    mode="datetime"
-                    display="default"
-                    onChange={(event, selectedDate) => {
-                      setShowStartPicker(false);
-                      if (selectedDate) setStartDateTime(selectedDate);
-                    }}
-                  />
-                )}
-
-                {showEndPicker && (
-                  <DateTimePicker
-                    value={endDateTime || new Date()}
-                    mode="datetime"
-                    display="default"
-                    onChange={(event, selectedDate) => {
-                      setShowEndPicker(false);
-                      if (selectedDate) setEndDateTime(selectedDate);
-                    }}
-                  />
-                )}
 
             </SafeAreaView>
             {/* </TouchableWithoutFeedback> */}

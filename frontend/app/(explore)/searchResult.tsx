@@ -17,6 +17,9 @@ import styles from '../styles/searchResultStyles';
 import { MaterialIcons} from "@expo/vector-icons";
 import CustomListItem from "../components/CustomListItem";
 import * as Location from 'expo-location';
+import ListingCard from "../components/ListingCard";
+import { getUser } from "../utils/meUtils";
+import { showAlertDialog } from "../utils/chatUtils";
 
 interface GroupedCategories {
   mainCategory: Category;
@@ -34,11 +37,18 @@ interface Listing {
   title: string;
   price: number;
   condition: string;
+  isReserved:boolean;
+  isSold:boolean;
   address: string;
   location: {
     type: 'Point';
     coordinates: [number, number]; // [longitude, latitude]
   };
+  obfuscatedLocation?: {
+    type: 'Point';
+    coordinates: [number, number]; // [longitude, latitude]
+  };
+  sellerId:string;
 }
 
 const DEFAULT_REGION = {
@@ -80,10 +90,14 @@ const searchResult = () => {
  
   const [selectedListing, setSelectedListing] = useState<Listing>();
 
-  //rebuild debounced function when searchQuery changes
+  const [userFavorites, setUserFavorites] = useState<string[]>([]);
+  const [userId, setUserId] = useState<string>(''); 
+
+  // ***** rebuild debounced function when searchQuery changes
   const debouncedFetchListingsByRegion = useMemo(() =>
     debounce((region: Region) => {
       fetchListingsbyQuery({ isInitial: true, region });
+      fetchUserFavorites()
     }, 500),
   [searchQuery,selectedCategoryId]);
 
@@ -127,28 +141,31 @@ const searchResult = () => {
 };
 
 
- // search listing based on category
- // search listing for one time if previous page pass category id
+ // **** search listing based on category
+ // ****** search listing for one time if previous page pass category id
   useEffect(() => {
     if (!selectedCategoryId) return;
       console.log(`searchResult => useEffect fetchListing category param: ${selectedCategoryId}`)
       fetchListingsbyQuery({ isInitial: true });
+      fetchUserFavorites()
   }, [categoryId]);
 
   const onPressCategoryApply = () =>{
       console.log(`searchResult => onPressCategoryApply ${selectedCategoryName}`)
       setModalCategoryVisible(false)
       fetchListingsbyQuery({ isInitial: true });
+      fetchUserFavorites()
   }
 
-  // search listing based on search query of modal view
+  // ***** search listing based on search query of modal view
   useEffect(() => {
     if (!searchQuery) return;
-     console.log(`searchResult => useEffect fetchliting searchQuery ${searchQuery}`)
+    console.log(`searchResult => useEffect fetchliting searchQuery ${searchQuery}`)
     fetchListingsbyQuery({ isInitial: true });
+    fetchUserFavorites()
   }, [searchQuery]);
 
-  // search listing based on param of previous main page
+  // ****** search listing based on param of previous main page
   useEffect(()=>{
     if(!query) return;
      setSearchQuery(query)
@@ -187,7 +204,7 @@ const searchResult = () => {
     setSearchQuery(value)
   };
 
-  //  Category
+  //  ***** Category
   const onShowCategoryModal = () =>{
     setModalCategoryVisible(true);
   }
@@ -221,8 +238,22 @@ const searchResult = () => {
     }
     fetchCategories();
 
+    fetchUserFavorites()
    // getUserLocation();
   }, []);
+
+  /// **** fetchUserFavorites
+  const fetchUserFavorites = async () => {
+      try {
+          const response = await getUser();
+          console.log('fetchUserFavorites ', `response.favorites userId ${response._id}`);
+            setUserFavorites(response.favorites || []);
+            setUserId(response._id);
+          } catch (error: any) {
+            const errMsg = error?.response?.data?.message || 'Something went wrong.';
+            showAlertDialog( errMsg,() => { },);
+      }
+  };
 
   // getUserLocation
   // const getUserLocation = async () => {
@@ -253,27 +284,34 @@ const searchResult = () => {
   // };
 
 
-    const renderItem = ({ item }:{item:Listing}) => (
-    <View style={styles.card}>
-      <TouchableOpacity onPress={() => {
-            router.push({pathname:'/(explore)/listingDetails',params:{listingId:item._id}})
-      }}>
-      <View>
-        <Image  style={styles.image} source={ item.image[0] ? {uri: item.image[0]} : require('../../assets/images/default_image.png')} />
-         <View style={styles.textContainer}>
-          <View style={{flex:1,}}>
-            <Text style={styles.title} numberOfLines={2}>{item.title}</Text>
-            <Text style={styles.price}>${item.price}</Text>
-            <Text style={styles.condition}>{item.condition}</Text>
-          </View>
-          <TouchableOpacity style={{width:24}}>
-            <MaterialIcons name="favorite-border" size={24} color="black" />
-          </TouchableOpacity>
-        </View>
-      </View>
-      </TouchableOpacity>
-    </View>
-   );
+  //   const renderItem = ({ item }:{item:Listing}) => (
+  //   <View style={styles.card}>
+  //     <TouchableOpacity onPress={() => {
+  //           router.push({pathname:'/(explore)/listingDetails',params:{listingId:item._id}})
+  //     }}>
+  //     <View>
+  //       <View style={{position:'relative'}}>
+  //           <Image  style={styles.image} source={ item.image[0] ? {uri: item.image[0]} : require('../../assets/images/default_image.png')} />
+  //            {/* <Text style={styles.reservedItem}>RESERVED</Text> */}
+  //             {item.isReserved && !item.isSold && (
+  //             <Text style={styles.reservedItem}>RESERVED</Text>
+  //           )}
+  //           {item.isSold && <Text style={styles.soldItem}>SOLD</Text>}
+  //       </View>
+  //        <View style={styles.textContainer}>
+  //         <View style={{flex:1,}}>
+  //           <Text style={styles.title} numberOfLines={2}>{item.title}</Text>
+  //           <Text style={styles.price}>${item.price}</Text>
+  //           <Text style={styles.condition}>{item.condition}</Text>
+  //         </View>
+  //         <TouchableOpacity style={{width:24}}>
+  //           <MaterialIcons name="favorite-border" size={24} color="black" />
+  //         </TouchableOpacity>
+  //       </View>
+  //     </View>
+  //     </TouchableOpacity>
+  //   </View>
+  //  );
 
   return (
     <SafeAreaProvider>
@@ -416,8 +454,8 @@ const searchResult = () => {
                           <Marker
                             key={listing._id}
                             coordinate={{
-                              latitude: listing?.location?.coordinates?.[1] ?? 0,
-                              longitude: listing?.location?.coordinates?.[0] ?? 0
+                              latitude: listing?.obfuscatedLocation?.coordinates?.[1] ?? 0,
+                              longitude: listing?.obfuscatedLocation?.coordinates?.[0] ?? 0
                             }}
                             // title={listing.title} 
                             // description={listing.address} 
@@ -456,7 +494,21 @@ const searchResult = () => {
                         keyExtractor={(item, index) => `${item._id ?? 'id'}-${index}`}
                         numColumns={2}
                         columnWrapperStyle={styles.row}
-                        renderItem={renderItem}
+                       // renderItem={renderItem}
+                        renderItem={({ item }) => (
+                        <ListingCard
+                            listing={item}
+                            isFavorited={userFavorites.includes(item._id)}
+                            isUserListing={item.sellerId === userId} // ← Check ownership
+                            onPress={() =>
+                                router.push({
+                                pathname: '/(explore)/listingDetails',
+                                params: { listingId: item._id },
+                                })
+                            }
+                            onFavoritePress={() => console.log(`Favorited: ${item._id}`)}
+                            />
+                        )}
                         contentContainerStyle={styles.flatListContainer}
                        // onEndReached={fetchListingsbyQuery}
                         onEndReached={() => {

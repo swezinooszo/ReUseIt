@@ -4,21 +4,21 @@ import { useState,useEffect } from "react";
 import { AuthProvider,useAuth } from '@/context/AuthContext';
 import { View, ActivityIndicator } from 'react-native';
 import { NotificationProvider } from '@/context/NotificationContext';
-import * as Notifications from "expo-notifications";
+//import * as Notifications from "expo-notifications";
 //import { useAuth,AuthProvider } from './AuthContext';
 
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: true,
-    shouldShowBanner: true, // ✅ NEW (iOS)
-    shouldShowList: true,   // ✅ NEW (iOS)
-  }),
-});
+// Notifications.setNotificationHandler({
+//   handleNotification: async () => ({
+//     shouldShowAlert: true,
+//     shouldPlaySound: true,
+//     shouldSetBadge: true,
+//     shouldShowBanner: true, // ✅ NEW (iOS)
+//     shouldShowList: true,   // ✅ NEW (iOS)
+//   }),
+// });
 
 export default function RootLayout() {
-   console.log('1. RootLayout');
+   //console.log('1. RootLayout');
 
   // const { loading } = useAuth();
 
@@ -44,6 +44,6 @@ export default function RootLayout() {
               <Stack.Screen name="verifyotp" options={{ headerShown: false }} />
         </Stack>
         </AuthProvider>
-        </NotificationProvider>
+     </NotificationProvider>
   );
 }

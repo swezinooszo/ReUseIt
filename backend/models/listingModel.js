@@ -50,6 +50,17 @@ const listingSchema = mongoose.Schema(
                 required: true 
             }
         },
+        obfuscatedLocation: {
+            type: {
+                type: String,
+                enum: ['Point'],
+                default: 'Point'
+            },
+            coordinates: {
+                type: [Number], // [lng, lat]
+                required: true
+            }
+        },
         sellerId: { 
             type: mongoose.Schema.Types.ObjectId, 
             ref: 'User', 
@@ -59,6 +70,19 @@ const listingSchema = mongoose.Schema(
             type: Map,
             of: String,
             default: {},
+        },
+        isNotificationDisabled: {
+            type: Boolean,
+            default: false
+        },
+        isAwaitingUserConfirmation: {
+            type: Boolean,
+            default: false
+        },
+        reservationUntil: Date,
+        shouldPromptUser: {
+            type: Boolean,
+            default: false
         }
     },
     {
@@ -67,4 +91,7 @@ const listingSchema = mongoose.Schema(
 )
 
 listingSchema.index({ location: '2dsphere' });
+listingSchema.index({ obfuscatedLocation: "2dsphere" });
+listingSchema.index({ isReserved: 1, reservationUntil: 1, isNotificationDisabled: 1 });
+
 module.exports = mongoose.model('Listing',listingSchema)

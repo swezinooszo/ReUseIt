@@ -53,9 +53,10 @@ interface Listing {
 
 interface Props {
   listing: Listing;
+  userId:string;
 }
 
-const ListingDetailsComponent = ({listing,}:Props) => {
+const ListingDetailsComponent = ({listing,userId}:Props) => {
     
     const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
@@ -89,7 +90,7 @@ const ListingDetailsComponent = ({listing,}:Props) => {
 
  //** View Seller details */
   const onSellerDetails = () => {
-      router.push({pathname:'/(explore)/sellerDetails',params:{sellerId:listing?.sellerId._id}})
+      router.push({pathname:'/(explore)/sellerDetails',params:{sellerId:listing?.sellerId._id,userId:userId}})
   }
 
   return (

@@ -1,5 +1,5 @@
 import React, {useEffect, useState} from 'react';
-import {View,Text,StyleSheet,TouchableOpacity,KeyboardAvoidingView,ScrollView,Platform} from "react-native"
+import {View,Text,StyleSheet,TouchableOpacity,KeyboardAvoidingView,ScrollView,Platform,Button} from "react-native"
 import {SafeAreaView, SafeAreaProvider} from 'react-native-safe-area-context';
 import { router } from "expo-router";
 import CustomButton from './components/CustomButton'
@@ -10,13 +10,13 @@ import * as SecureStore from 'expo-secure-store';
 import api from './utils/api';
 import LottieView from 'lottie-react-native';
 import axios from 'axios';
-import { useNotification } from "@/context/NotificationContext";
+//import { useNotification } from "@/context/NotificationContext";
 
 const signin =  () => {
-    const { notification, expoPushToken, error } = useNotification();
-    if (error) {
-        return <Text>Error: {error.message}</Text>;
-    }
+    // const { notification, expoPushToken, error } = useNotification();
+    // if (error) {
+    //     return <Text>Error: {error.message}</Text>;
+    // }
 
     const { login } = useAuth();
 
@@ -24,7 +24,6 @@ const signin =  () => {
     const [password,setPassword] = useState('');
     const [secureText, setSecureText] = useState(true);
     const toggleSecureText = () => setSecureText(prev => !prev);
-
     const [loading, setLoading] = useState(false);
 
      const onSignIn = async () => { 
@@ -35,7 +34,7 @@ const signin =  () => {
                 email:email,
                 password:password
             })
-            login(res.data.token)
+            login(res.data.token,res.data.user)
         }catch(error: unknown){
             console.log(`submitting server error ${error}`)
             if (axios.isAxiosError(error) && error.response) {
@@ -67,6 +66,25 @@ const signin =  () => {
         router.replace('/signup')
      }
 
+    //  const sendNotification = async () => {
+    //      const message = {
+    //         to: expoPushToken,
+    //         sound: 'default',
+    //         title: 'Original Title',
+    //         body: 'And here is the body!',
+    //         data: { someData: 'goes here' },
+    //     };
+
+    //     await fetch('https://exp.host/--/api/v2/push/send', {
+    //         method: 'POST',
+    //         headers: {
+    //         Accept: 'application/json',
+    //         'Accept-encoding': 'gzip, deflate',
+    //         'Content-Type': 'application/json',
+    //         },
+    //         body: JSON.stringify(message),
+    //     });
+    //  }
     return(
         <SafeAreaProvider>
             <SafeAreaView style={styles.container}>
@@ -102,15 +120,14 @@ const signin =  () => {
                </View>
 
 
-                <View>
+                {/* <View>
                     <Text>{expoPushToken}</Text>
                     <Text>{notification?.request.content.title}</Text>
                     <Text>
                     {JSON.stringify(notification?.request.content.data, null, 2)}
                     </Text>
-                </View>
+                </View> */}
                  {/* <CustomButton onPress={onNavigateSignUp} text="Here to Sign Up" fontWeight="bold" borderRadius={8}/> */}
-
 
                 </ScrollView>
                 </KeyboardAvoidingView>

@@ -82,16 +82,16 @@ const verifyOTP = asyncHandler(async (req, res) => {
   user.otp = null;
   user.otpExpires = null;
   await user.save();
-
+  //return jwt token
   const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
-    expiresIn: '7d'
+    expiresIn: '30d'
   });
 
   res.status(200).json({ token, user });
 });
 
 const loginUser = async (req, res) => {
-  const { email, password } = req.body;
+  const { email, password, expoPushToken } = req.body;
 
   try {
     // 1. Check if user exists
@@ -104,14 +104,14 @@ const loginUser = async (req, res) => {
 
     // 3. Create JWT
     const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
-      expiresIn: '7d',
+      expiresIn: '30d',
     });
 
     // 4. Return token and user info
     res.status(200).json({
       token,
       user: {
-        id: user._id,
+        _id: user._id,
         email: user.email,
         username: user.username,
         createdAt: user.createdAt

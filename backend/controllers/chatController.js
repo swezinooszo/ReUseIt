@@ -40,7 +40,8 @@ const markAsRead = asyncHandler(async (req,res) => {
   try {
     const { userId } = req.body;
     const { chatId } = req.params;
-    
+   // console.log( `markAsRead backend userId ${userId} chatId ${chatId}`)
+
     if (!userId) return res.status(400).json({ error: 'userId is required' });
 
     const chat = await Chat.findById(chatId);

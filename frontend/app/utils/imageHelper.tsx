@@ -17,7 +17,8 @@ export const takePhoto = async (): Promise<string | null> => {
     return null;
 };
 
-export const pickImages = async (): Promise<string[] | null> => {
+
+export const pickImages = async (allowsMultipleSelection:boolean): Promise<string[] | null> => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
 
     if (status !== 'granted') {
@@ -26,7 +27,7 @@ export const pickImages = async (): Promise<string[] | null> => {
     }
 
     const result = await ImagePicker.launchImageLibraryAsync({
-        allowsMultipleSelection: true,
+        allowsMultipleSelection: allowsMultipleSelection,
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
     });
 

@@ -10,6 +10,7 @@ import api from '../utils/api';
 import { uploadAndSaveImage,compressImages } from '../utils/itemReviewFromUtils';
 import styles from '../styles/itemReviewFormStyles';
 import LottieView from 'lottie-react-native';
+import { getTokenAndUserId } from '../utils/listingDetailsUtils'; 
 
 type MyJwtPayload = {
   id: string; // or userId: string;
@@ -33,16 +34,20 @@ const itemReviewForm = () =>{
     // retrieve userId for listing submitting
     useEffect(() => {
       const loadToken = async () => {
-        const storedToken = await AsyncStorage.getItem('userToken');
-        if (storedToken) {
-          try {
-            const decoded = jwtDecode<MyJwtPayload>(storedToken);
-
-            setUserId(decoded.id);
-          } catch (error) {
-            console.error("Error decoding token:", error);
-          }
+        const { token, userId } = await getTokenAndUserId();
+        if (userId) {
+          setUserId(userId);
         }
+        // const storedToken = await AsyncStorage.getItem('userToken');
+        // if (storedToken) {
+        //   try {
+        //     const decoded = jwtDecode<MyJwtPayload>(storedToken);
+
+        //     setUserId(decoded.id);
+        //   } catch (error) {
+        //     console.error("Error decoding token:", error);
+        //   }
+        // }
       };
       loadToken();
     }, []);

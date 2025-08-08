@@ -44,7 +44,6 @@ const verifyotp = () => {
         const otp = otpDigits.join('');
         if (otp.length < 6) {
               showAlertDialog(
-                'ReUseIt',
                 'Please enter all 6 digits.',
                 () => {
                    
@@ -59,11 +58,10 @@ const verifyotp = () => {
         })
         .then(res=> {
             console.log(`'Verify OTP successful!${res.data.token}`)
-            login(res.data.token)
+            login(res.data.token,res.data.user)
         })
         .catch(error=>{
             showAlertDialog(
-                'ReUseIt',
                 error.response.data.message || 'Invalid OTP',
                 () => {
                    
@@ -86,7 +84,6 @@ const verifyotp = () => {
         })
         .catch(error=> {
              showAlertDialog(
-                'ReUseIt',
                 error.response.data.message || 'Error in resending OTP',
                 () => {
                    

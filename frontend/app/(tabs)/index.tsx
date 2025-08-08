@@ -14,8 +14,22 @@ import ComputerTech from '../../assets/icons/computer.svg';
 import HomeAppliance from '../../assets/icons/homeappliance.svg';
 import Furniture from '../../assets/icons/furniture.svg';
 import Phone from '../../assets/icons/phone.svg';
-
 import { useNotification } from "@/context/NotificationContext";
+import { useAuth } from '@/context/AuthContext';
+import { getTokenAndUserId } from "../utils/listingDetailsUtils";
+import ListingCard from "../components/ListingCard";
+import { saveListing } from "../utils/homeUtils";
+import { showAlertDialog } from "../utils/chatUtils";
+import { getUser } from "../utils/meUtils";
+import { showConfirmationDialog } from '@/app/utils/chatUtils';
+import { soldListing,unReserveListing } from "@/app/utils/chatUtils";
+import { useFocusEffect } from '@react-navigation/native';
+import { useCallback } from 'react';
+
+interface ListingWithBuyer {
+  listing: Listing;
+  buyerId: string;
+}
 
 interface Category {
     _id: string;
@@ -29,6 +43,9 @@ interface Listing {
   title: string;
   price: number;
   condition: string;
+  isReserved:boolean;
+  isSold:boolean;
+  sellerId:string;
 }
 
 export default function Index() {
@@ -36,6 +53,7 @@ export default function Index() {
   if (error) {
     return <Text>Error: {error.message}</Text>;
   }
+  const { saveExpoPushToken } = useAuth();
 
   const colorScheme = useColorScheme(); // returns 'light' or 'dark'
   const router = useRouter();
@@ -55,14 +73,25 @@ export default function Index() {
   const onEndReachedCalledDuringMomentum = useRef(true);
   const [refreshing, setRefreshing] = useState(false);
 
+  const [userFavorites, setUserFavorites] = useState<string[]>([]);
+  const [userId, setUserId] = useState<string>(''); 
+  const [promptListings, setPromptListings] = useState<ListingWithBuyer[]>([]);
+
   const refreshListings = async () => {
     console.log(`call refreshListings`)
     setRefreshing(true);
     try {
+       // 1. Fetch new listings
       const response = await api.get(`/listings?page=1&limit=10`);
       setListings(response.data);
       setPage(2); // reset page to 2 for next scroll fetch
       setHasMore(true);
+
+      // 2. Fetch updated user favorites
+      // const user = await getUser();
+      // setUserFavorites(user.favorites || []);
+      // setUserId(user._id);
+      fetchUserFavorites()
     } catch (error) {
       console.error('Error refreshing listings:', error);
     } finally {
@@ -100,11 +129,177 @@ export default function Index() {
     }
   }
 
+   const fetchUserFavorites = async () => {
+     try {
+          const response = await getUser();
+          console.log('fetchUserFavorites ', `response.favorites userId ${response._id}`);
+           setUserFavorites(response.favorites || []);
+           setUserId(response._id);
+          } catch (error: any) {
+            const errMsg = error?.response?.data?.message || 'Something went wrong.';
+            showAlertDialog( errMsg,() => { },);
+      }
+  };
+
   useEffect(()=>{
-    console.log(`useEffect fetchListing`)
+    console.log(`Index.tsx useEffect`)
       fetchListings();
+      fetchUserFavorites();
       fetchCategories();
   },[])
+
+  // useFocusEffect(
+  //   useCallback(() => {
+  //     console.log(`Index.tsx useEffect`)
+  //     fetchListings();
+  //     fetchUserFavorites();
+  //     fetchCategories();
+  //   }, [])
+  // );
+
+  //save userId & expoPushToken to backend to show notification
+  useEffect(() =>{
+     console.log(`Index.tsx useEffect expoPushToken ${expoPushToken}`)
+    if(!expoPushToken){return}
+
+    const getUserId = async () =>{
+      try {
+        //get userId from jwt token
+        const { token, userId } = await getTokenAndUserId();
+        console.log(`useEffect home page userId => ${userId}`)
+         //save userId & expoPushTOken to backend 
+        const result = await api.post('/users/savetoken', {
+              userId: userId,
+              expoPushToken: expoPushToken,
+        });
+        //this is saved in AuthContext to clear the userId and expoPushToken from database when user log out
+        saveExpoPushToken(userId as string,expoPushToken)
+        console.log(`useEffect home page savetoken result => ${result.data}`)
+       } catch (error) {
+        console.error('Error saving push token:', error);
+      }
+    }
+
+    getUserId();
+  },[expoPushToken])
+
+  const onSearchPress= () => {
+    setModalVisible(true);
+   }
+
+  {/* Modal Search  */}
+  // fetchSuggestions
+  useEffect(() => {
+      console.log(`Index.tsx useEffect modalQuery ${modalQuery}`)
+    const fetchSuggestions = async () => {
+      if (modalQuery.trim() === '') {
+        setSuggestions([]);
+        return;
+      }
+
+      try {
+        const res = await api.get(`/listings/suggestions?query=${modalQuery}`);
+        console.log(`fetch suggestions data ${res.data}`)
+        setSuggestions(res.data); // Expect array of strings
+      } catch (err) {
+        console.log('Error fetching suggestions:', err);
+      }
+    };
+
+    fetchSuggestions();
+  }, [modalQuery]);
+
+  const callSearchResultPageQueryString = (value: string) => {
+    setModalVisible(false);
+    console.log('call ***searchResultPage****')
+    router.push({ pathname: '/searchResult', params: { query: value } });
+  };
+
+   const callSearchResultPageCategoryId = (id: string,name:string) => {
+    console.log(`call ***searchResultPage**** categoryId ${id} ${name}`)
+    router.push({ pathname: '/searchResult', params: { categoryId: id,categoryName:name,categoryType:'main' } });
+  };
+
+   const handleFavorite = async (listingId:string) => {
+    try {
+      const result = await saveListing(listingId);
+      console.log('Updated favorites:', result.favorites);
+
+      // Update local favorite state
+      setUserFavorites((prevFavorites) => {
+        const isAlreadyFavorite = prevFavorites.includes(listingId);
+        if (isAlreadyFavorite) {// is favorite there, remove (means user want to remove it by clicking red fav icon)
+          return prevFavorites.filter((id) => id !== listingId);
+        } else {
+          return [...prevFavorites, listingId];
+        }
+      });
+
+    } catch (error: any) {
+      const errMsg = error?.response?.data?.message || 'Something went wrong.';
+      showAlertDialog( error.response.data.message,() => { },);
+    } 
+  };
+
+  /// *** prompt user
+  useEffect(() => {
+    if (!promptListings.length) return;
+     console.log(`index.tsx useFocusEffect promptListings.length ${promptListings}`)
+    promptListings.forEach(({ listing, buyerId }) => {
+
+        showConfirmationDialog(
+              'Confirmation',
+              'Is Transaction Complete?',
+              () => soldListing(listing._id as string),//subscribers.current.forEach((cb) => cb(data, 'ok')),
+              () =>  unReserveListing(listing._id  as string, buyerId as string)//subscribers.current.forEach((cb) => cb(data, 'cancel'))
+            );
+
+
+      // // Show alert only if we haven't shown for this listing already
+      // if (!alertShownFor.has(listing._id)) {
+      //   showConfirmationDialog(
+      //     'Confirmation',
+      //     'Is Transaction Complete?',
+      //     () => {
+      //       soldListing(listing._id);
+      //       setAlertShownFor(prev => new Set(prev).add(listing._id));
+      //     },
+      //     () => {
+      //       unReserveListing(listing._id, buyerId);
+      //       setAlertShownFor(prev => new Set(prev).add(listing._id));
+      //     }
+      //   );
+      // }
+
+    });
+  }, [promptListings]);
+
+  // useEffect(()=>{
+  //     checkListingPrompt();
+  // },[userId])
+
+  useFocusEffect(
+    useCallback(() => {
+        console.log(`index.tsx useFocusEffect checkListingPrompt`)
+        if(!userId) return
+        checkListingPrompt();
+    }, [userId])
+  );
+
+  // ** check listing prompt if user disabled notification
+  const checkListingPrompt = async () => {
+    try{
+      console.log(`index.tsx checkListingPrompt userId ${userId}`)
+      //const response = await api.get(`/listings/user/${user?._id}`);
+      const res = await api.get(`/listings/promptcheck/${userId}`);
+      console.log(`index.tsx checkListingPrompt res ${res}`)
+      const listings: ListingWithBuyer[] = res.data.listings;
+      console.log(`index.tsx checkListingPrompt listings ${listings}`)
+      setPromptListings(listings || []);
+    } catch (error) {
+      console.error('Error saving push token:', error);
+    }
+ };
 
    const renderCategory = ({ item} :{item:Category}) => (
     <TouchableOpacity style={{ alignItems: 'center' }} onPress={() => callSearchResultPageCategoryId(item._id,item.name)}>
@@ -137,72 +332,6 @@ export default function Index() {
     </TouchableOpacity>
  
   );
-
-    const renderItem = ({ item }:{item:Listing}) => (
-    <View style={styles.card}>
-      <TouchableOpacity onPress={() => {
-            router.push({pathname:'/(explore)/listingDetails',params:{listingId:item._id}})
-      }}>
-      <View>
-        <Image source={ item.image[0] ? {uri: item.image[0]} : require('../../assets/images/default_image.png')} style={styles.image} />
-        <View style={styles.textContainer}>
-          <View style={{flex:1,}}>
-            <Text style={styles.title} numberOfLines={2}>{item.title}</Text>
-            <Text style={styles.price}>${item.price}</Text>
-            <Text style={styles.condition}>{item.condition}</Text>
-          </View>
-          <TouchableOpacity style={{width:24}}>
-            <MaterialIcons name="favorite-border" size={24} color="black" />
-          </TouchableOpacity>
-        </View>
-      
-      </View>
-      </TouchableOpacity>
-    </View>
-   );
-
-  const onSearchPress= () => {
-    setModalVisible(true);
-   }
-
-  {/* Modal Search  */}
-  // fetchSuggestions
-  useEffect(() => {
-    const fetchSuggestions = async () => {
-      if (modalQuery.trim() === '') {
-        setSuggestions([]);
-        return;
-      }
-
-      try {
-        const res = await api.get(`/listings/suggestions?query=${modalQuery}`);
-        console.log(`fetch suggestions data ${res.data}`)
-        setSuggestions(res.data); // Expect array of strings
-      } catch (err) {
-        console.log('Error fetching suggestions:', err);
-      }
-    };
-
-    fetchSuggestions();
-  }, [modalQuery]);
-
-  const callSearchResultPageQueryString = (value: string) => {
-    setModalVisible(false);
-    console.log('call ***searchResultPage****')
-    router.push({ pathname: '/searchResult', params: { query: value } });
-  };
-
-   const callSearchResultPageCategoryId = (id: string,name:string) => {
-    console.log(`call ***searchResultPage**** categoryId ${id} ${name}`)
-    router.push({ pathname: '/searchResult', params: { categoryId: id,categoryName:name,categoryType:'main' } });
-  };
-
-  // go to add new lisitng
-  const listTheItem = () =>{
-    console.log('list the item clicked')
-    setModalVisible(false)
-    router.replace('/(tabs)/addListing')
-  }
 
   return (
     <SafeAreaProvider>
@@ -317,11 +446,23 @@ export default function Index() {
               <View style={styles.listContainer}>
                   <FlatList
                     data={listings}
-                    // keyExtractor={(item, index) => item._id || index.toString()}
                     keyExtractor={(item, index) => `${item._id ?? 'id'}-${index}`}
                     numColumns={2}
                     columnWrapperStyle={styles.row}
-                    renderItem={renderItem}
+                     renderItem={({ item }) => (
+                        <ListingCard
+                        listing={item}
+                        isFavorited={userFavorites.includes(item._id)}
+                        isUserListing={item.sellerId === userId} // ← Check ownership
+                        onPress={() =>
+                            router.push({
+                            pathname: '/(explore)/listingDetails',
+                            params: { listingId: item._id },
+                            })
+                        }
+                        onFavoritePress={() => handleFavorite(item._id)}
+                        />
+                    )}
                     ListHeaderComponent={
                       <View style={{ paddingVertical: 10 }}>
                          <View style={{padding:20,alignItems:'center'}}>

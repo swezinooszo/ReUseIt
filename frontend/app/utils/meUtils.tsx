@@ -1,3 +1,5 @@
+import api from "./api"
+
 export const getUserExperience = (createdAt: string): string => {
         const createdDate = new Date(createdAt);
         const now = new Date();
@@ -16,4 +18,27 @@ export const getUserExperience = (createdAt: string): string => {
         } else {
             return `${days} day${days > 1 ? 's' : ''}`;
         }
+};
+
+
+export const getUser = async () => {
+   // console.log('call getUserProfile')
+    try {
+        const response = await api.get('/users/me');
+       // console.log('Refreshed user profile:', response);
+        return response.data;
+    } catch (error) {
+        console.error('Failed to fetch user profile:', error);
+         throw error
+    }
+};
+
+export const getFavoriteListings = async (userId: string) => {
+  try {
+    const res = await api.get(`/users/${userId}/favorites`);
+    return res.data; // This will be the array of listings
+  } catch (error: any) {
+    console.error('Error fetching favorite listings:', error);
+    throw error;
+  }
 };

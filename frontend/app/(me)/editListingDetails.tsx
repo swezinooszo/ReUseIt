@@ -17,7 +17,7 @@ import { Ionicons } from '@expo/vector-icons';
 import Entypo from '@expo/vector-icons/Entypo';
 import ActionSheet, { SheetManager }  from "react-native-actions-sheet";
 import ListingDetailsComponent from '../components/ListingDetailsComponent';
-import { showConfirmationDialog,showAlertDialog } from '../utils/chatUtils';
+import { showConfirmationDialog } from '../utils/chatUtils';
 
 const screenWidth = Dimensions.get('window').width;
 
@@ -52,10 +52,11 @@ interface Listing {
 
 const editListingDetails = () => {
 
-    const { listingId } = useLocalSearchParams();
+    const { listingId,userId =''} = useLocalSearchParams();
     const [listing, setListing] = useState<Listing | null>();
     const [isReserved,setIsReserved] = useState<Boolean>(false)
 
+    const userIdParam = typeof userId === 'string' ? userId : userId?.[0] ?? '';
     //retrieve listing details based on id
     useEffect(()=>{
         console.log(`listing reserve ${listing?.isReserved}`)
@@ -66,7 +67,9 @@ const editListingDetails = () => {
 
     useEffect(() => {
         api.get(`/listings/${listingId}`)
-        .then(res => setListing(res.data))
+        .then(
+          res => setListing(res.data.listing)//res => setListing(res.data)
+        )
         .catch(err => console.error(err));
         
     }, [listingId]);
@@ -242,7 +245,7 @@ const editListingDetails = () => {
 
         {/* Scrollable Listing Details content */}
         { listing && (
-            <ListingDetailsComponent listing={listing}></ListingDetailsComponent>
+            <ListingDetailsComponent listing={listing} userId={userIdParam}></ListingDetailsComponent>
         )
         }
       </View>

@@ -1,6 +1,7 @@
 const asyncHandler = require('express-async-handler')
 const Offer = require('../models/offerModel')
 const Listing = require('../models/listingModel')
+const {notifyListingStatus} = require('../controllers/sendPushNotification')
 
 const createOffer = asyncHandler( async (req,res) =>{
 try {
@@ -49,8 +50,22 @@ const checkExistingOffer = asyncHandler (async (req, res) => {
       throw new Error('Missing buyerId or listingId')
     }
 
-    const existingOffer = await Offer.findOne({ buyerId, listingId }).populate('listingId');
-    console.log(`call backend existingOffer result ${existingOffer}`)
+     // 1️⃣ First, check for an accepted offer for this listing
+    let existingOffer = await Offer.findOne({
+      listingId,
+      status: 'accepted'
+    }).populate('listingId');
+
+    if (!existingOffer) {
+      // 2️⃣ If no accepted offer, check for an offer by this buyer
+      existingOffer = await Offer.findOne({
+        listingId,
+        buyerId
+      }).populate('listingId');
+    }
+
+   // const existingOffer = await Offer.findOne({ buyerId, listingId }).populate('listingId');
+   // console.log(`call backend existingOffer result ${existingOffer}`)
     if (existingOffer) {
        res.status(200).json({ exists: true, offer: existingOffer });
     } else {
@@ -63,24 +78,72 @@ const checkExistingOffer = asyncHandler (async (req, res) => {
 });
 
 const toggleReserve = asyncHandler (async (req, res) => {
-  try {
+  //try {
       console.log(`toggleReserve backend api`)
-    const { isReserved } = req.body;
-    const listingId = req.params.listingId;
+    // const { isReserved } = req.body;
+   // const listingId = req.params.listingId;
+    const { isReserved, listingId , buyerId,isNotificationDisabled,reservationPeriod } = req.body;
 
-    console.log(`toggleReserve => isReserved ${isReserved} listingId ${listingId}`)
+    console.log(`toggleReserve => isReserved ${isReserved} listingId ${listingId}  isNotificationDisabled ${isNotificationDisabled}  reservationPeriod ${reservationPeriod}`)
+     // Build update object dynamically
+    const updateFields = {
+      isReserved
+    };
+
+    if (typeof isNotificationDisabled !== 'undefined') {
+      updateFields.isNotificationDisabled = isNotificationDisabled;
+    }
+
+    if (typeof reservationPeriod !== 'undefined') {
+      updateFields.reservationUntil = reservationPeriod;
+    }
+
+    if (isReserved === false) {
+      updateFields.acceptedOfferIds = [];
+      updateFields.reservationUntil = null;
+      updateFields.isNotificationDisabled = false;
+      updateFields.isAwaitingUserConfirmation = false;
+      updateFields.shouldPromptUser = false;
+    }
+
     const listing = await Listing.findByIdAndUpdate(
       listingId,
-      {
-        isReserved,
-        isVisibleToMarket: !isReserved, // true if unreserving, false if reserving
-      },
+      updateFields,
       { new: true }
     );
 
+    // const listing = await Listing.findByIdAndUpdate(
+    //   listingId,
+    //   {
+    //     isReserved,
+    //     isNotificationDisabled,
+    //     reservationUntil: reservationPeriod,
+    //     ...(isReserved === false && { 
+    //       acceptedOfferIds: [],
+    //       reservationUntil: null,
+    //       isNotificationDisabled: false,
+    //       isAwaitingUserConfirmation: false,
+    //       shouldPromptUser: false,
+    //       }), // if listing is unreserved, 1.change reserve status, 2.clear acceptedOfferIds from listing when unreserving
+    //   },
+    //   { new: true }
+    // );
+
     if (!listing) {
-      res.status(404).json({ error: 'Listing not found' });
+      //res.status(404).json({ error: 'Listing not found' });
+       res.status(404);
+      throw new Error('Listing not found');
     } 
+
+     // 3. If unreserving, delete related 'accepted offer' from offers
+    if (isReserved === false) {
+      // const deleteResult = await Offer.deleteMany({ listingId });
+      const deleteResult = await Offer.deleteMany({ listingId, buyerId });
+      console.log(`Deleted ${deleteResult.deletedCount} offers for listing ${listingId}`);
+    }
+
+    // ✅ Notify all buyers about status change
+    await notifyListingStatus(listingId,listing.title ,isReserved ? 'This listing has been reserved.' : 'This listing is now available again.');
 
     res.status(200).json({
       message: isReserved
@@ -88,34 +151,47 @@ const toggleReserve = asyncHandler (async (req, res) => {
         : 'Listing unreserved and visible to market.',
       listing,
     });
-  } catch (err) {
-    res.status(400).json({ error: err.message });
-  }
+  // } catch (err) {
+  //   res.status(400).json({ error: err.message });
+  // }
 });
 
 const toggleSold = asyncHandler (async (req, res) => {
-  try {
+// try {
       console.log(`toggleSold backend api`)
       const listingId = req.params.listingId;
 
       const listing = await Listing.findById(listingId);
 
       if (!listing) {
-        return res.status(404).json({ error: 'Listing not found' });
+        // return res.status(404).json({ error: 'Listing not found' });
+        res.status(404);
+        throw new Error('Listing not found');
       }
 
       if (listing.isSold) {
-        return res.status(400).json({ error: 'Listing is already marked as sold.' });
+        //return res.status(400).json({ error: 'Listing is already marked as sold.' });
+        res.status(400);
+        throw new Error('Listing is already marked as sold.');
       }
-
+      console.log(`toggleSold backend api`)
       listing.isSold = true;
       listing.isVisibleToMarket = false; // ⛔️ remove from market
+
+      listing.reservationUntil=null,
+      listing.isNotificationDisabled = false,
+      listing.isAwaitingUserConfirmation = false,
+      listing.shouldPromptUser = false,
+      
       await listing.save();
 
-    res.status(200).json({ message: 'Listing marked as sold and removed from market.', listing });
-  } catch (err) {
-    res.status(400).json({ error: err.message });
-  }
+      // ✅ Notify all buyers about status change
+      await notifyListingStatus(listingId,listing.title,'This listing has been sold.');
+
+      res.status(200).json({ message: 'Listing marked as sold and removed from market.', listing });
+  // } catch (err) {
+  //   res.status(400).json({ error: err.message });
+  // }
 });
 
 // const getOfferById = asyncHandler(async (req,res) => {

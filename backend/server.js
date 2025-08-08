@@ -1,3 +1,5 @@
+require('./cron/reservationChecker');
+console.log('🚀 SERVER FILE LOADED');
 //1.
 const express = require('express')
 
@@ -7,6 +9,8 @@ const { Server } = require('socket.io');
 const jwt = require('jsonwebtoken');
 const Chat = require('./models/chatModel');
 const Message = require('./models/messageModel');
+const { notifyNewMessage } = require('./controllers/sendPushNotification');
+const User = require('./models/userModel');
 
 const colors = require('colors')
 const dotenv = require('dotenv').config()
@@ -30,6 +34,7 @@ app.use('/api/chats',require('./routes/chatRoutes'))
 app.use('/api/auth',require('./routes/authRoutes'))
 app.use('/api/categories',require('./routes/categoryRoutes'))
 app.use('/api/offers',require('./routes/offerRoutes'))
+app.use('/api/reviews',require('./routes/reviewRoutes'))
 app.use(errorHandler)
 
 
@@ -49,7 +54,7 @@ const io = new Server(server, {//io is your Socket.IO server instance.
 
 // Auth middleware
 io.use((socket, next) => {
-  //console.log('auth middleware');
+  console.log('🔐 Auth middleware hit');
   const token = socket.handshake.auth.token;
   //console.log(`auth middleware token ${token}`);
   if (!token) return next(new Error('No token'));
@@ -60,6 +65,7 @@ io.use((socket, next) => {
       socket.userId = decoded.id;
       next();
   } catch (err) {
+      console.log('JWT verification failed', err);
       next(new Error('Auth failed'));
   }
 
@@ -74,12 +80,10 @@ io.use((socket, next) => {
 
 // Socket handlers
 io.on('connection', (socket) => {
-  console.log('User Socket Io connected:', socket.userId);
-
-    //socket.userId = '683baea3c5b53f9905bd28fa';//temporary.. later delete this line //683baa594ff5279bf1aaebc2
-
+     console.log('🧠 Connected: userId', socket.userId);
+    //****** buyer send chat to seller
     socket.on('joinChat', async ({ listingId, receiverId }) => {
-        console.log(`join chat in server.js`)
+        console.log(`joinChat`, `socket.userId=> ${socket.userId}  receiverId=> ${receiverId}`)
 
         let chat = await Chat.findOne({
         listingId,
@@ -101,15 +105,33 @@ io.on('connection', (socket) => {
     socket.emit('chatJoined', { chatId: chat._id });
   });
 
-  socket.on('sendMessage', async ({ chatId, message }) => {
+  socket.on('sendMessage', async ({ chatId, message
+      // add below params are to show as notification info
+      ,receiverId,listingTitle,currentUserName
+      //added extra param for notification to show as noti info and page trigger (when notification tap, come this page again).
+      ,token,chat//currentUserId
+   }) => {
+      console.log('server.js sendMessage start')
     const msg = await Message.create({
       chatId,
       senderId: socket.userId,
       message
     });
 
+     console.log('server.js sendMessage end')
     //add current user id as lastMessageReadBy so that the message won't be bold (as unread) when current user open the chat list
+    //only sender will be added (like reset lastMessageReadBy array (in the case of two user, now there will be only sender id will be there))
     await Chat.findByIdAndUpdate(chatId, { lastMessage: message, updatedAt: new Date(), lastMessageReadBy: [socket.userId], });
+
+    console.log('notifyNewMessage start ')
+    // notify receiver with push notification
+    await notifyNewMessage(
+        // below params are to show as notification info
+        receiverId,message,listingTitle,currentUserName
+        //added extra param for notification to show as noti info and page trigger (when notification tap, come this page again).
+        ,chat//currentUserId,token
+    )
+     console.log('notifyNewMessage end ')
 
     io.to(chatId).emit('newMessage', {
       _id: msg._id,

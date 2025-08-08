@@ -43,40 +43,40 @@ const searchResultStyles = StyleSheet.create({
       justifyContent: 'space-between',
       marginBottom: 15,
     },
-    card: {
-      width: itemWidth,
-      backgroundColor: '#fff',
-      borderRadius: 10,
-      overflow: 'hidden',
-      elevation: 2,
-      padding: 8,
-    },
-    image: {
-      width: '100%',
-      height: itemWidth,
-      borderRadius: 8
-    },
-    textContainer: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'flex-start',
-      marginTop: 5,
-    },
-    title: {
-      fontSize: 14,
-      flex: 1,
-      fontWeight: 'bold',
-      marginRight: 4,
-    },
-    price: {
-      fontWeight: 'bold',
-      fontSize: 14,
-      marginTop: 4,
-    },
-    condition: {
-      fontSize: 14,
-      color: '#777',
-    },
+    // card: {
+    //   width: itemWidth,
+    //   backgroundColor: '#fff',
+    //   borderRadius: 10,
+    //   overflow: 'hidden',
+    //   elevation: 2,
+    //   padding: 8,
+    // },
+    // image: {
+    //   width: '100%',
+    //   height: itemWidth,
+    //   borderRadius: 8
+    // },
+    // textContainer: {
+    //   flexDirection: 'row',
+    //   justifyContent: 'space-between',
+    //   alignItems: 'flex-start',
+    //   marginTop: 5,
+    // },
+    // title: {
+    //   fontSize: 14,
+    //   flex: 1,
+    //   fontWeight: 'bold',
+    //   marginRight: 4,
+    // },
+    // price: {
+    //   fontWeight: 'bold',
+    //   fontSize: 14,
+    //   marginTop: 4,
+    // },
+    // condition: {
+    //   fontSize: 14,
+    //   color: '#777',
+    // },
     modalContainer : {
       flex:1,
       // justifyContent: "center",
@@ -161,6 +161,22 @@ const searchResultStyles = StyleSheet.create({
     shadowRadius: 5,
     elevation: 5
   },
+   reservedItem: {
+      width:'100%',
+      padding:4,
+      fontSize: 14,
+      backgroundColor:'#5FCC7D',
+      position:'absolute',
+      bottom: 0,
+    },
+     soldItem: {
+      width:'100%',
+      padding:4,
+      fontSize: 14,
+      backgroundColor:'red',
+      position:'absolute',
+      bottom: 0,
+    },
     // {backgroundColor:'white',padding:5,paddingHorizontal:10,borderWidth:1,borderColor:'gray',borderRadius:20}
    
 })

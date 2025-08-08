@@ -120,7 +120,7 @@ const editListingDetailsForm = () => {
         api.get(`/listings/${listingId}`)
         .then(res =>
             { 
-                setListing(res.data)
+                setListing(res.data.listing)//setListing(res.data)
             }
         )
         .catch(err => console.error(err));
@@ -138,7 +138,7 @@ const editListingDetailsForm = () => {
         if (uri) setImages(prev => [...prev, uri]); 
     }
     const handlePickImages = async () => {
-            const uris = await pickImages();
+            const uris = await pickImages(true);
             if (uris) setImages(prev => [...prev, ...uris]);
     }
 

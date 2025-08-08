@@ -7,6 +7,6 @@ router.route('/').post(createOffer)
 //router.route('/:id').get(getOfferById)
 router.route('/accept/:offerId').post(acceptOffer)
 router.route('/check').get(checkExistingOffer)
-router.route('/reserve/:listingId').put(toggleReserve)
+router.route('/reserve').put(toggleReserve)
 router.route('/sold/:listingId').put(toggleSold)
 module.exports = router

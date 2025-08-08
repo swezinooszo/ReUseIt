@@ -4,43 +4,48 @@ const screenWidth = Dimensions.get('window').width;
 const itemWidth = (screenWidth - 30) / 2; // Adjust spacing
 
 const meStyles = StyleSheet.create({
+
     container:{
-        flex:1,
+      flex:1,
        // padding:20,
-        backgroundColor:'white'
+      backgroundColor:'#5FCC7D'
+    },
+    sellerdetailscontainer:{
+      flex:1,
+       // padding:20,
+      backgroundColor:'#fff'
+    },
+    topContainer:{
+      height:50,
+      flexDirection:'row',
+      backgroundColor:'#5FCC7D',
+    },
+    middleContainer:{
+      height:70,
+      backgroundColor:'blue',
     },
      userListingContainer:{
        flex:1,
-      // backgroundColor:'green'
+       backgroundColor:'white'
+       
     },
     cardContainer: {
       alignItems: 'center',
-      marginTop: 30,
+      marginTop: 10,
+    //  backgroundColor:'red'
     },
-    // topViewContainer:{
-    //     height: 170,
-    //     backgroundColor:'lightblue',
-    // },
+   
      imageContainer: {
       zIndex: 2,//zIndex: 2 brings the image in front
       alignItems: 'center',
     },
-    // imageContainer:{
-    //   alignItems:'center'
-    // },
-      image:{
+    image:{
         width: 100,
         height: 100,
         borderRadius: 50,
         position: 'absolute',//When you want a view (like a profile image) to visually "float" over another (like a card), you give it:
         top: 0,
     },
-
-    //   image:{
-    //     width:80,
-    //     height:80,
-    //     borderRadius:40,
-    // },
      UserInfoContainer:{
         backgroundColor: 'white',
         width: '90%',
@@ -48,7 +53,7 @@ const meStyles = StyleSheet.create({
         marginTop: 50, // push the card down below the image
         paddingTop: 60, // leave space for the overlapping image
         paddingBottom: 20,
-        paddingHorizontal: 16,
+       // paddingHorizontal: 16,
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.1,
@@ -64,15 +69,16 @@ const meStyles = StyleSheet.create({
         fontSize: 18,
         fontWeight:'bold',
         color:'#5FCC7D',
-        marginTop:10
+        marginTop:0
     },
     yearsTitle:{
         fontSize: 14,
-        fontWeight:'bold'
+        fontWeight:'bold',
+        height:24,//to be align with review
     },
      yearsLabel:{
         fontSize: 14,
-        color:'grey'
+        color:'grey',
     },
     reviewsTitle:{
         fontSize: 14,
@@ -80,16 +86,18 @@ const meStyles = StyleSheet.create({
     },
      reviewLabel:{
         fontSize: 14,
-        color:'grey'
+        color:'grey',
     },
      profileTextMainContainer:{
        flexDirection:'row',
        marginTop:10,
-      // backgroundColor:'pink'
     },
     profileTextContainer:{
-       flex: 1,   
+      flex: 1,   
       alignItems:'center',
+      justifyContent:'center',
+      marginTop:10,
+    
     },
     listingCountTitle:{
         fontSize: 16,
@@ -164,6 +172,43 @@ const meStyles = StyleSheet.create({
       position:'absolute',
       bottom: 0,
     },
+
+      modalContainer: {
+        flex: 1,
+        justifyContent: "center",
+        alignItems: "center",
+        backgroundColor: "white"//"rgba(0, 0, 0, 0.5)",
+      },
+      modalContent: {
+        backgroundColor: "white",
+        padding: 20,
+        borderRadius: 10,
+        width: "80%",
+        alignItems: "center",
+      },
+      modalTitle: {
+        fontSize: 18,
+        fontWeight: "bold",
+        marginBottom: 20,
+      },
+      modalButton: {
+        backgroundColor:"#5FCC7D",
+        padding: 15,
+        borderRadius: 5,
+        width: "100%",
+        alignItems: "center",
+        marginVertical: 10,
+      },
+      modalButtonText: {
+        color: "white",
+        fontSize: 16,
+        fontWeight: "bold",
+  
+      },
+      ratingView : {
+        flexDirection:'row',
+        alignItems:'center'
+      }
     
 })
 

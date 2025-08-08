@@ -1,8 +1,10 @@
 //3.
 const asyncHandler = require('express-async-handler')
 const Listing = require('../models/listingModel')
-
-
+const Chat = require('../models/chatModel');
+const Offer = require('../models/offerModel');
+const { getObfuscatedCoordinates } = require('../utils/locationObfuscator');
+const sha256 = require('crypto-js/sha256');
 
 // @desc    Create Listings
 // @route   POST /api/listings
@@ -35,6 +37,18 @@ const createListing = asyncHandler( async (req,res) => {
        throw new Error('Invalid location data');
     }
 
+    const [lng, lat] = location.coordinates;
+
+    // Temporarily generate a random ID for hashing before saving
+    const tempId = sha256(title + Date.now()).toString(); // fallback for pre-ID
+    const { latitude, longitude } = getObfuscatedCoordinates(tempId, lng, lat);
+
+    const obfuscatedLocation = {
+        type: 'Point',
+        coordinates: [longitude, latitude],
+    };
+
+
     const listing = await Listing.create({
     title,
     price,
@@ -43,6 +57,7 @@ const createListing = asyncHandler( async (req,res) => {
     sellerId,
     address,
     location,
+    obfuscatedLocation,
     categoryId,
     subCategoryIds,
     image,
@@ -97,7 +112,15 @@ const getListingById = asyncHandler(async (req,res) => {
             res.status(400)
             throw new Error('Listing not found')
         }
-        res.status(200).json(listing);
+
+        // newly added. Fetch the related chat with full population
+        const chat = await Chat.findOne({ listingId: id })
+        .populate('buyerId')     // all buyer fields
+        .populate('sellerId')    // all seller fields
+        .populate('listingId');  // all listing fields
+
+        
+        res.status(200).json({listing,chat});//res.status(200).json(listing);
     } catch (err) {
         console.error('Error fetching listings:', err);
         res.status(500).json({ error: 'Server error' });
@@ -156,7 +179,7 @@ const getListingsByQuery = asyncHandler(async (req,res) => {
 
         // Geo bounding box search
         if (!isNaN(minLat) && !isNaN(maxLat) && !isNaN(minLng) && !isNaN(maxLng)) {
-        query.location = {
+        query.obfuscatedLocation = {
             $geoWithin: {
             $box: [
                 [minLng, minLat], // bottom-left corner (lng, lat)
@@ -182,9 +205,22 @@ const getListingsByQuery = asyncHandler(async (req,res) => {
         .sort({ createdAt: -1 }) // newest first
         .skip(skip)
         .limit(limit)
-        .select('image title price condition address location'); // Only return needed fields
+       // .select('image title price condition address location'); // Only return needed fields
 
-        res.status(200).json({total,listings});
+    //    const obfuscatedListings = listings.map((listing) => {
+    //     const [lng, lat] = listing.location.coordinates;
+    //     const { latitude, longitude } = getObfuscatedCoordinates(listing._id.toString(), lng, lat);
+
+    //     return {
+    //         ...listing.toObject(), // convert Mongoose doc to plain object
+    //         location: {
+    //         ...listing.location,
+    //         coordinates: [longitude, latitude], // ← replace with obfuscated
+    //         },
+    //     };
+    //     });
+
+        res.status(200).json({total,listings});//res.status(200).json({total,listings:obfuscatedListings});
     } catch (err) {
         console.error('Error fetching listings:', err);
         res.status(500).json({ error: 'Server error' });
@@ -315,6 +351,42 @@ const updateListing = asyncHandler(async (req, res) => {
   res.status(200).json(updatedListing);
 });
 
+//const updateListing = asyncHandler(async (req, res) => {
+// GET /api/listings/prompt-check/:userId
+const promptCheck =  asyncHandler(async (req, res) => {
+  const userId = req.params.userId;
+   console.log(`Backend promptCheck userId ${userId}`)
+  const listings = await Listing.find({
+    sellerId: userId,
+    isAwaitingUserConfirmation: true,
+    shouldPromptUser: true,
+  });
+
+   console.log(`Backend promptCheck listings ${listings}`)
+
+    // For each listing, find accepted offer's buyerId
+  const listingsWithBuyer = await Promise.all(
+    listings.map(async (listing) => {
+      console.log(`Backend promptCheck acceptedOffer loop`)
+
+      const acceptedOffer = await Offer.findOne({
+        listingId: listing._id,
+        status: 'accepted',
+      }).select('buyerId');
+
+      console.log(`Backend promptCheck acceptedOffer  ${acceptedOffer}`)
+
+      return {
+        listing,
+        buyerId: acceptedOffer ? acceptedOffer.buyerId : null,
+      };
+    })
+  );
+
+   console.log(`Backend promptCheck listingsWithBuyer ${listingsWithBuyer}`)
+  res.status(200).json({ listings: listingsWithBuyer });
+});
+
 
 module.exports = {
     getListings,
@@ -324,5 +396,6 @@ module.exports = {
     getSuggestions,
     getListingByUserId,
     deleteListing,
-    updateListing
+    updateListing,
+    promptCheck
 }
