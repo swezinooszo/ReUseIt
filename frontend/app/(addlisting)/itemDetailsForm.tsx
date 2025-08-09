@@ -264,7 +264,7 @@ const itemDetailsForm = () =>{
                                     // You can store them in your form state
                                 }}
                                 query={{
-                                    key: 'AIzaSyDybKGH0IPGfRObdEpiyUeowj54u6CXJa4',
+                                    key: '',
                                     language: 'en',
                                     components: 'country:ca' // optional to restrict to Canada
                                 }}
