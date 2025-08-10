@@ -1,4 +1,4 @@
-require('./cron/reservationChecker');
+//require('./cron/reservationChecker');
 console.log('🚀 SERVER FILE LOADED');
 //1.
 const express = require('express')
@@ -35,6 +35,7 @@ app.use('/api/auth',require('./routes/authRoutes'))
 app.use('/api/categories',require('./routes/categoryRoutes'))
 app.use('/api/offers',require('./routes/offerRoutes'))
 app.use('/api/reviews',require('./routes/reviewRoutes'))
+app.use('/api/notifications',require('./routes/notificationRoutes'))
 app.use(errorHandler)
 
 

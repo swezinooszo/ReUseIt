@@ -1,5 +1,6 @@
 const User = require('../models/userModel');
 const Chat = require('../models/chatModel');
+const Notification = require('../models/notificationModel')
 const { Expo } = require('expo-server-sdk');
 const expo = new Expo();
 
@@ -85,5 +86,39 @@ async function notifyListingStatus(listingId, title,statusMessage) {
   }
 }
 
+async function notifyReview(reviewId,listingId,reviewerId,revieweeId) {
+  try {
+   // const user = await User.findById(reviewerId);
+    const reviewer = await User.findById(reviewerId);//.select('username');
+    const message = `left you a new review.`;
+    const reviewee = await User.findById(revieweeId);
 
-module.exports = { sendPushNotification,notifyNewMessage,notifyListingStatus };
+     // 1️⃣ Store in database for in-app notifications
+    const notification = await Notification.create({
+        user: revieweeId,
+        type: 'review',
+        message,
+        reviewer:reviewerId,
+        listing:listingId,
+        review:reviewId,
+        isRead: false
+    });
+
+     // 2️⃣ Send push notification
+    console.log(`notifyReview username ${reviewer.username}`)
+      for (const token of reviewee.expoPushTokens) {
+        console.log(`notifyListingStatus token ${token}`)
+        await sendPushNotification(
+          token,
+          'New Review Received',
+          `${reviewer.username} ${message}`,
+          { type: 'review', reviewId:reviewId,listingId: listingId,reviewerId:reviewerId,revieweeId:revieweeId, notificationId:notification._id}
+        );
+      }
+    
+  } catch (error) {
+    console.error('Error notifying buyers about listing status:', error);
+  }
+}
+
+module.exports = { sendPushNotification,notifyNewMessage,notifyListingStatus, notifyReview};

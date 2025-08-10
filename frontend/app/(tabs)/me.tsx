@@ -50,6 +50,9 @@ const me = () => {
     const [averageRating,setAverageRating] = useState(0);
     const [reviewCount,setReviewCount] = useState(0);
 
+    useEffect(()=>{
+        console.log('me useEffect')
+    })
     // ******* get listings by UserId *********
     useEffect(()=>{
        // console.log(`useEffect getListingsByUserId ${user}`)

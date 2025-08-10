@@ -14,6 +14,7 @@ import { showConfirmationDialog } from '../app/utils/chatUtils';
 import { router } from 'expo-router';
 import { soldListing,unReserveListing } from "../app/utils/chatUtils";
 import { getTokenAndUserId } from "@/app/utils/listingDetailsUtils";
+import { fetchUnreadCount } from '@/app/utils/notificationUtils';
 
 interface User {
   _id: string;
@@ -47,6 +48,8 @@ interface NotificationContextType {
   expoPushToken: string | null;
   notification: Notifications.Notification | null;
   error: Error | null;
+  unreadCount: number;
+  loadUnreadNotification: () => Promise<void>;
 }
 
 const NotificationContext = createContext<NotificationContextType | undefined>(
@@ -77,9 +80,17 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({
   const [error, setError] = useState<Error | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
 
+  const [unreadCount, setUnreadCount] =  useState<number>(0);//useState<number | undefined>(undefined);//
+
   const notificationListener = useRef<EventSubscription | null>(null);
   const responseListener = useRef<EventSubscription | null>(null);
 
+    const loadUnreadNotification = async () => {
+          const count = await fetchUnreadCount();
+          console.log("Unread count:", count); 
+          setUnreadCount(count > 0 ? count : 0);
+    };
+    
   useEffect(() => {
     registerForPushNotificationsAsync().then(
       (token) => setExpoPushToken(token),
@@ -90,6 +101,13 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({
       Notifications.addNotificationReceivedListener((notification) => {
         console.log("🔔 Notification Received while the app is running: ", notification);
         setNotification(notification);
+        console.log(`🔔 Notification Received while the app is running: type ${notification.request.content.body}`);
+        console.log(`🔔 Notification Received while the app is running: type ${notification.request.content.data?.type}`);
+       
+        if (notification.request.content.data?.type === "review") {
+           console.log("🔔 Coming Notification type is recive");
+          loadUnreadNotification();
+        }
       });
 
     responseListener.current =
@@ -128,6 +146,9 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({
     };
 
     loadToken();
+
+    // fetch unread notification count
+    loadUnreadNotification();
 
     return () => {
       if (notificationListener.current) notificationListener.current.remove();
@@ -180,12 +201,15 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({
                   pathname: '/(explore)/listingDetails',
                   params: { listingId: data.listingId as string },
                   })
+        }else if (data.type === 'review'){
+         // await loadUnreadNotification();
+          router.push({pathname:'/(me)/reviewList',params:{userIdParam:data.revieweeId as string,notificationId:data.notificationId as string}})
         }
   };
 
   return (
     <NotificationContext.Provider
-     value={{ expoPushToken, notification, error }}// value={{ expoPushToken, notification,onNotificationTap, error }}
+     value={{ expoPushToken, notification, error, unreadCount, loadUnreadNotification  }}// value={{ expoPushToken, notification,onNotificationTap, error }}
     >
       {children}
     </NotificationContext.Provider>

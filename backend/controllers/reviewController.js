@@ -3,6 +3,8 @@ const Review = require('../models/reviewModel');
 const Listing = require('../models/listingModel');
 const User = require('../models/userModel');
 const mongoose = require('mongoose');
+const {notifyListingStatus, notifyReview} = require('../controllers/sendPushNotification')
+
 
 // @desc    Submit a review
 // @route   POST /api/reviews
@@ -70,6 +72,9 @@ const submitReview = asyncHandler (async (req, res) => {
       rating,
       comment,
     })
+
+        // ✅ Notify all buyers about status change
+    await notifyReview(review._id,listingId,reviewerId,revieweeId);
 
     console.log(`submitReview end success`)
     res.status(200).json(review);

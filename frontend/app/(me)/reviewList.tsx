@@ -10,6 +10,8 @@ import { FlatList } from 'react-native-gesture-handler';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { handleApiError } from '../utils/chatUtils';
 import ReviewComponent from '../components/reviewComponent';
+import { useNotification } from '@/context/NotificationContext';
+import { markNotificationAsRead } from '../utils/notificationUtils';
 
 interface User {
     _id:string;
@@ -42,7 +44,8 @@ const reviewList = () => {
     const { userParam,averageRatingParam='0',reviewCountParam='0' } = useLocalSearchParams();
     //come from chat, only pass userIdParam
     const { userIdParam } = useLocalSearchParams();
-    
+    // to update notification as read when it come from review push notification or update page
+    const {notificationId} = useLocalSearchParams()
     const [user,setUser] = useState<User>();
     const [reviews,setReviews] = useState<Review[]>([]);
     const [averageRating,setAverageRating] = useState(0);
@@ -51,9 +54,27 @@ const reviewList = () => {
     // const parsedRating = Number(averageRating);
     // const parsedReviewCount = Number(reviewCount);
 
+    const { unreadCount,loadUnreadNotification } = useNotification();
+
     const onClose = () =>{
         router.back()
     }
+
+    /// update notificationa as read when it come from review push notification or update page and reload unread notification for badgage count in updats tab 
+    const markNotificationRead = async (notificationId: string) =>{
+      const result = await markNotificationAsRead(notificationId);
+      if(result){
+         // and load Unread Notification to refresh badage count in notification tab
+        loadUnreadNotification() ;
+      }
+    }
+
+    useEffect(()=> {
+      if(!notificationId) return
+
+      //mark notification as read
+      markNotificationRead(notificationId as string);
+    },[notificationId])
 
     // parameters get from Me page
     useEffect(() => {

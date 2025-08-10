@@ -11,6 +11,7 @@ import CustomButton from "../components/CustomButton";
 import { GooglePlacesAutocomplete } from 'react-native-google-places-autocomplete';
 import 'react-native-get-random-values';
 import styles from "../styles/itemDetailsFormStyles";
+import { MAP_API_KEY } from '../../config/config';
 
 interface Category{
   _id:string;
@@ -264,7 +265,7 @@ const itemDetailsForm = () =>{
                                     // You can store them in your form state
                                 }}
                                 query={{
-                                    key: '',
+                                    key: MAP_API_KEY,
                                     language: 'en',
                                     components: 'country:ca' // optional to restrict to Canada
                                 }}

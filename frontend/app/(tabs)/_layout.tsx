@@ -9,6 +9,9 @@ import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { showConfirmationDialog } from '../utils/chatUtils';
 //import { NotificationProvider } from '@/context/NotificationContext';
 import * as Notifications from "expo-notifications";
+// import { fetchUnreadCount } from '../utils/notificationUtils';
+import { useState,useEffect } from 'react';
+import { useNotification } from '@/context/NotificationContext';
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -23,10 +26,22 @@ Notifications.setNotificationHandler({
 export default function TabsLayout() {
   const colorScheme = useColorScheme();
   const { isLoggedIn,loading,logout } = useAuth();
+  //const [unreadCount, setUnreadCount] = useState<number | undefined>(undefined);
+   const { unreadCount } = useNotification();
 
+  const router = useRouter();
    // console.log('2. _layout in tabs');
 
-    if (loading) {
+  // useEffect(() => {
+  //   const loadUnread = async () => {
+  //     const count = await fetchUnreadCount();
+  //       console.log("Unread count:", count); 
+  //     setUnreadCount(count > 0 ? count : undefined);
+  //   };
+  //   loadUnread();
+  // }, []);
+
+  if (loading) {
     return null; // or <SplashScreen />
    }
   //console.log(` isLogin ${isLoggedIn}`)
@@ -54,11 +69,12 @@ export default function TabsLayout() {
     <Tabs
     screenOptions={{
     tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
-    headerShown: false,
+   // headerShown: false,
     }}>
         <Tabs.Screen
         name="index"
         options={{
+          headerShown:false,
             title: 'Explore',
             tabBarIcon: ({ color, focused }) => (
             <TabBarIcon name={focused ? 'search' : 'search'} color={color} />
@@ -68,6 +84,7 @@ export default function TabsLayout() {
         <Tabs.Screen
         name="addListing"
         options={{
+            headerShown:false,
             title: 'Add Listing',
             tabBarIcon: ({ color, focused }) => (
             // <TabBarIcon name={focused ? 'list-circle' : 'list-circle-outline'} color={color} />
@@ -75,6 +92,21 @@ export default function TabsLayout() {
             ),
         }}
         />
+
+        <Tabs.Screen
+        name="updates"
+        options={{
+            title: 'Updates',
+            tabBarIcon: ({ color, focused }) => (
+            <MaterialCommunityIcons name="bell-ring" size={24} color={color} />
+            ),
+            tabBarBadge: unreadCount > 0 ? unreadCount : undefined,
+            tabBarBadgeStyle: { backgroundColor: 'red', color: 'white' },
+            
+        }}
+        />
+
+
         <Tabs.Screen
         name="me"
         options={{
@@ -85,7 +117,6 @@ export default function TabsLayout() {
             <FontAwesome5 name="user-alt" size={24} color={color} />
             ),
             headerRight: () => {
-            const router = useRouter();
             return (
               <View style={{flexDirection:'row'}}>
                 <TouchableOpacity
